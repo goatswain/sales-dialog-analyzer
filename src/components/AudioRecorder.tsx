@@ -75,7 +75,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
       const formData = new FormData();
       formData.append('audio', audioFile);
 
-      const response = await fetch('/api/upload-audio', {
+      const response = await fetch('/functions/v1/upload-audio', {
         method: 'POST',
         body: formData,
       });
@@ -110,7 +110,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
 
   const startTranscription = async (recordingId: string) => {
     try {
-      const response = await fetch('/api/transcribe-audio', {
+      const response = await fetch('/functions/v1/transcribe-audio', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
