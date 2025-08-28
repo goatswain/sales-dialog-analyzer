@@ -54,6 +54,8 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured')
     }
     console.log('OpenAI API key found:', openaiApiKey ? 'Yes' : 'No')
+    console.log('API key length:', openaiApiKey?.length)
+    console.log('API key starts with sk-:', openaiApiKey?.startsWith('sk-'))
 
     // Download audio file from Supabase Storage
     const { data: audioData, error: downloadError } = await supabaseClient.storage
