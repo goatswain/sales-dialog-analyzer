@@ -9,6 +9,8 @@ const corsHeaders = {
 
 // Background transcription task
 async function performTranscription(recordingId: string) {
+  console.log('🚀 Starting background transcription for:', recordingId)
+  
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -42,16 +44,18 @@ async function performTranscription(recordingId: string) {
 
     // Get and validate OpenAI API key
     const rawApiKey = Deno.env.get('OPENAI_API_KEY')
+    console.log('🔑 Raw API key exists:', !!rawApiKey, 'Length:', rawApiKey?.length || 0)
+    
     if (!rawApiKey) {
-      console.error('OpenAI API key not found in environment variables')
+      console.error('❌ OpenAI API key not found in environment variables')
       throw new Error('OpenAI API key not configured')
     }
     
     const openaiApiKey = rawApiKey.trim()
-    console.log('API key validation - Length:', openaiApiKey.length, 'Starts with sk-:', openaiApiKey.startsWith('sk-'))
+    console.log('✅ API key validation - Length:', openaiApiKey.length, 'Starts with sk-:', openaiApiKey.startsWith('sk-'))
     
     if (!openaiApiKey.startsWith('sk-') || openaiApiKey.length < 40) {
-      console.error('Invalid OpenAI API key format')
+      console.error('❌ Invalid OpenAI API key format')
       throw new Error('Invalid OpenAI API key format')
     }
 
@@ -156,10 +160,14 @@ serve(async (req) => {
       )
     }
 
+    console.log('🎬 Starting background transcription for recording:', recordingId)
+    
     // Start background transcription task
     if ('EdgeRuntime' in globalThis) {
+      console.log('🌐 Using EdgeRuntime.waitUntil for background task')
       EdgeRuntime.waitUntil(performTranscription(recordingId))
     } else {
+      console.log('🏠 Using fallback for local development')
       // Fallback for local development
       performTranscription(recordingId).catch(console.error)
     }
