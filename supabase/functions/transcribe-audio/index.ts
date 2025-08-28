@@ -48,14 +48,22 @@ serve(async (req) => {
       .eq('id', recordingId)
 
     // Get OpenAI API key from secrets
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openaiApiKey) {
+    const rawApiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!rawApiKey) {
       console.error('OpenAI API key not found in environment variables')
       throw new Error('OpenAI API key not configured')
     }
+    
+    // Clean the API key (remove any whitespace)
+    const openaiApiKey = rawApiKey.trim()
     console.log('OpenAI API key found:', openaiApiKey ? 'Yes' : 'No')
     console.log('API key length:', openaiApiKey?.length)
     console.log('API key starts with sk-:', openaiApiKey?.startsWith('sk-'))
+    
+    if (!openaiApiKey.startsWith('sk-')) {
+      console.error('Invalid OpenAI API key format - should start with sk-')
+      throw new Error('Invalid OpenAI API key format')
+    }
 
     // Download audio file from Supabase Storage
     const { data: audioData, error: downloadError } = await supabaseClient.storage
