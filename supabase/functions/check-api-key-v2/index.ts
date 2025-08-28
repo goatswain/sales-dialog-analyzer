@@ -14,6 +14,15 @@ serve(async (req) => {
     const apiKey = Deno.env.get('OPENAI_API_KEY')
     const allEnvVars = Object.keys(Deno.env.toObject())
     
+    // Enhanced debugging
+    console.log('🔍 Debug - API key check:', {
+      hasApiKey: !!apiKey,
+      keyLength: apiKey?.length || 0,
+      startsWithSk: apiKey?.startsWith('sk-') || false,
+      allEnvVars: allEnvVars.filter(key => key.includes('OPENAI') || key.includes('API')),
+      timestamp: new Date().toISOString()
+    })
+    
     return new Response(
       JSON.stringify({ 
         hasApiKey: !!apiKey,
@@ -21,7 +30,7 @@ serve(async (req) => {
         startsWithSk: apiKey?.startsWith('sk-') || false,
         availableEnvVars: allEnvVars.filter(key => key.includes('OPENAI') || key.includes('API')),
         timestamp: new Date().toISOString(),
-        version: 'v2'
+        version: 'v3-debug'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
