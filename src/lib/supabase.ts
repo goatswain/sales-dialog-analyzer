@@ -1,13 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-// These will be automatically injected by Vite when deployed on Lovable
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:54321';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// In Lovable, these are automatically injected when connected to Supabase
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your project settings.');
-}
+// Debug logging
+console.log('Supabase URL available:', !!supabaseUrl);
+console.log('Supabase Key available:', !!supabaseAnonKey);
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create client - Lovable handles the environment variables automatically
+export const supabase = createClient(
+  supabaseUrl || '', 
+  supabaseAnonKey || ''
+);
 
 export default supabase;
