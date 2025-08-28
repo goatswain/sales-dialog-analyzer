@@ -109,9 +109,13 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
   };
 
   const startTranscription = async (recordingId: string) => {
+    console.log('🎤 Starting transcription for:', recordingId);
     try {
       // Add timestamp to force function restart with new API key
-      const response = await fetch(`https://cuabhynevjfnswaciunm.supabase.co/functions/v1/transcribe-audio?t=${Date.now()}`, {
+      const url = `https://cuabhynevjfnswaciunm.supabase.co/functions/v1/transcribe-audio?t=${Date.now()}`;
+      console.log('📡 Calling transcription URL:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,12 +123,16 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
         body: JSON.stringify({ recordingId }),
       });
 
+      console.log('📊 Transcription response status:', response.status);
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Transcription response error:', errorData);
         throw new Error(errorData.error || 'Transcription failed');
       }
 
       const result = await response.json();
+      console.log('✅ Transcription result:', result);
       
       if (result.success) {
         toast({
@@ -133,7 +141,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
         });
       }
     } catch (error) {
-      console.error('Transcription failed:', error);
+      console.error('💥 Transcription failed:', error);
       toast({
         title: "Transcription Failed",
         description: error.message || "Could not start transcription. Please try again.",
