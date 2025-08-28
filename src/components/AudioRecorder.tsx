@@ -85,16 +85,26 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
       }
 
       const result = await response.json();
+      console.log('📤 Upload result:', result);
       
       if (result.success) {
+        console.log('✅ Upload successful, starting transcription...');
         toast({
           title: "Upload Successful",
           description: "Starting transcription...",
         });
         
-        // Start transcription
-        await startTranscription(result.recording.id);
-        onUploadComplete(result.recording.id);
+        try {
+          // Start transcription
+          console.log('🎯 About to call startTranscription with ID:', result.recording.id);
+          await startTranscription(result.recording.id);
+          console.log('✅ Transcription call completed');
+          onUploadComplete(result.recording.id);
+        } catch (transcribeError) {
+          console.error('💥 Transcription error:', transcribeError);
+          // Don't throw - still complete the upload
+          onUploadComplete(result.recording.id);
+        }
       }
     } catch (error) {
       console.error('Upload failed:', error);
