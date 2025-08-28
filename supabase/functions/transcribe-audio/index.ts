@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-console.log('🔄 Transcribe function starting with fresh deployment - v2.0')
+console.log('🔄 Transcribe function starting with fresh deployment - v3.0 - Force restart')
 
 // Background transcription task
 async function performTranscription(recordingId: string) {

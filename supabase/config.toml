@@ -9,5 +9,5 @@ verify_jwt = false
 [functions.analyze-conversation]
 verify_jwt = false
 
-[functions.check-api-key]
+[functions.check-api-key-v2]
 verify_jwt = false

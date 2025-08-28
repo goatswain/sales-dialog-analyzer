@@ -20,7 +20,8 @@ serve(async (req) => {
         keyLength: apiKey?.length || 0,
         startsWithSk: apiKey?.startsWith('sk-') || false,
         availableEnvVars: allEnvVars.filter(key => key.includes('OPENAI') || key.includes('API')),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        version: 'v2'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

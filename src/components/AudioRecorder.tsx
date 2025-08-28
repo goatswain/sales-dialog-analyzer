@@ -126,9 +126,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
       console.log('📡 Calling transcription URL:', url);
       
         // Test API key availability first
-        const keyCheckResponse = await fetch('https://cuabhynevjfnswaciunm.supabase.co/functions/v1/check-api-key');
+        const keyCheckResponse = await fetch('https://cuabhynevjfnswaciunm.supabase.co/functions/v1/check-api-key-v2');
         const keyCheck = await keyCheckResponse.json();
-        console.log('🔑 API Key Check:', keyCheck);
+        console.log('🔑 API Key Check V2:', keyCheck);
         
         if (!keyCheck.hasApiKey) {
           throw new Error('OpenAI API key not available in edge function environment');
