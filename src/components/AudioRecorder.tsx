@@ -115,7 +115,16 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
       const url = `https://cuabhynevjfnswaciunm.supabase.co/functions/v1/transcribe-audio?t=${Date.now()}`;
       console.log('📡 Calling transcription URL:', url);
       
-      const response = await fetch(url, {
+        // Test API key availability first
+        const keyCheckResponse = await fetch('https://cuabhynevjfnswaciunm.supabase.co/functions/v1/check-api-key');
+        const keyCheck = await keyCheckResponse.json();
+        console.log('🔑 API Key Check:', keyCheck);
+        
+        if (!keyCheck.hasApiKey) {
+          throw new Error('OpenAI API key not available in edge function environment');
+        }
+
+        const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
