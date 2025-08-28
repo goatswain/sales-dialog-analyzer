@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, FileAudio, Loader2, AlertCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Recording {
   id: string;
@@ -46,7 +46,10 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
         return;
       }
 
-      setRecordings(data || []);
+      setRecordings((data || []).map(recording => ({
+        ...recording,
+        status: recording.status as 'uploaded' | 'transcribing' | 'completed' | 'error'
+      })));
     } catch (error) {
       console.error('Error:', error);
     } finally {

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, Play, Pause, Send, Copy, MessageSquare, Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface Segment {
@@ -92,7 +92,11 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
 
       setRecording(data);
       if (data.transcripts && data.transcripts[0]) {
-        setTranscript(data.transcripts[0]);
+        const transcriptData = data.transcripts[0];
+        setTranscript({
+          ...transcriptData,
+          segments: Array.isArray(transcriptData.segments) ? (transcriptData.segments as unknown as Segment[]) : []
+        });
       }
     } catch (error) {
       console.error('Error:', error);
@@ -106,7 +110,7 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
 
     setIsAnalyzing(true);
     try {
-      const response = await fetch('/functions/v1/analyze-conversation', {
+      const response = await fetch('https://cuabhynevjfnswaciunm.supabase.co/functions/v1/analyze-conversation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
