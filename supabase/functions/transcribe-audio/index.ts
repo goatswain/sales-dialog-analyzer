@@ -146,6 +146,8 @@ async function performTranscription(recordingId: string) {
 }
 
 serve(async (req) => {
+  console.log('🔄 Function restarted with updated secrets')
+  
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
