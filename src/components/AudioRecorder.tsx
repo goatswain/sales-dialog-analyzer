@@ -110,7 +110,8 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
 
   const startTranscription = async (recordingId: string) => {
     try {
-      const response = await fetch('https://cuabhynevjfnswaciunm.supabase.co/functions/v1/transcribe-audio', {
+      // Add timestamp to force function restart with new API key
+      const response = await fetch(`https://cuabhynevjfnswaciunm.supabase.co/functions/v1/transcribe-audio?t=${Date.now()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
