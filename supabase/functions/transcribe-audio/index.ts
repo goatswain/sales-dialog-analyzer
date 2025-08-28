@@ -50,8 +50,10 @@ serve(async (req) => {
     // Get OpenAI API key from secrets
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openaiApiKey) {
+      console.error('OpenAI API key not found in environment variables')
       throw new Error('OpenAI API key not configured')
     }
+    console.log('OpenAI API key found:', openaiApiKey ? 'Yes' : 'No')
 
     // Download audio file from Supabase Storage
     const { data: audioData, error: downloadError } = await supabaseClient.storage
@@ -70,6 +72,7 @@ serve(async (req) => {
     formData.append('timestamp_granularities[]', 'segment')
 
     // Call OpenAI Whisper API
+    console.log('Calling Whisper API with file:', recording.audio_filename)
     const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
@@ -77,6 +80,8 @@ serve(async (req) => {
       },
       body: formData,
     })
+    
+    console.log('Whisper API response status:', whisperResponse.status)
 
     if (!whisperResponse.ok) {
       const errorText = await whisperResponse.text()
