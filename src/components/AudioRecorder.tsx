@@ -119,20 +119,26 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Transcription failed');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Transcription failed');
       }
 
-      toast({
-        title: "Transcription Started",
-        description: "Your audio is being transcribed...",
-      });
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Transcription Started",
+          description: "Your audio is being transcribed in the background...",
+        });
+      }
     } catch (error) {
       console.error('Transcription failed:', error);
       toast({
         title: "Transcription Failed",
-        description: "Could not start transcription. Please try again.",
+        description: error.message || "Could not start transcription. Please try again.",
         variant: "destructive",
       });
+      throw error;
     }
   };
 

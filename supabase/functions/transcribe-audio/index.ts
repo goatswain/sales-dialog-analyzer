@@ -7,38 +7,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+// Background transcription task
+async function performTranscription(recordingId: string) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+  )
 
   try {
-    const { recordingId } = await req.json()
-    
-    if (!recordingId) {
-      return new Response(
-        JSON.stringify({ error: 'Recording ID is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    )
-
     // Get recording data
     const { data: recording, error: fetchError } = await supabaseClient
       .from('recordings')
       .select('*')
       .eq('id', recordingId)
-      .single()
+      .maybeSingle()
 
     if (fetchError || !recording) {
-      return new Response(
-        JSON.stringify({ error: 'Recording not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      console.error('Recording not found:', fetchError)
+      await supabaseClient
+        .from('recordings')
+        .update({ 
+          status: 'error',
+          error_message: 'Recording not found' 
+        })
+        .eq('id', recordingId)
+      return
     }
 
     // Update status to transcribing
@@ -47,21 +40,18 @@ serve(async (req) => {
       .update({ status: 'transcribing' })
       .eq('id', recordingId)
 
-    // Get OpenAI API key from secrets
+    // Get and validate OpenAI API key
     const rawApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!rawApiKey) {
       console.error('OpenAI API key not found in environment variables')
       throw new Error('OpenAI API key not configured')
     }
     
-    // Clean the API key (remove any whitespace)
     const openaiApiKey = rawApiKey.trim()
-    console.log('OpenAI API key found:', openaiApiKey ? 'Yes' : 'No')
-    console.log('API key length:', openaiApiKey?.length)
-    console.log('API key starts with sk-:', openaiApiKey?.startsWith('sk-'))
+    console.log('API key validation - Length:', openaiApiKey.length, 'Starts with sk-:', openaiApiKey.startsWith('sk-'))
     
-    if (!openaiApiKey.startsWith('sk-')) {
-      console.error('Invalid OpenAI API key format - should start with sk-')
+    if (!openaiApiKey.startsWith('sk-') || openaiApiKey.length < 40) {
+      console.error('Invalid OpenAI API key format')
       throw new Error('Invalid OpenAI API key format')
     }
 
@@ -71,6 +61,7 @@ serve(async (req) => {
       .download(recording.audio_filename)
 
     if (downloadError || !audioData) {
+      console.error('Failed to download audio file:', downloadError)
       throw new Error('Failed to download audio file')
     }
 
@@ -95,11 +86,12 @@ serve(async (req) => {
 
     if (!whisperResponse.ok) {
       const errorText = await whisperResponse.text()
-      console.error('Whisper API error:', errorText)
-      throw new Error(`Whisper API failed: ${whisperResponse.status}`)
+      console.error('Whisper API error response:', errorText)
+      throw new Error(`Whisper API failed: ${whisperResponse.status} - ${errorText}`)
     }
 
     const transcriptionResult = await whisperResponse.json()
+    console.log('Transcription successful, text length:', transcriptionResult.text?.length)
 
     // Process segments for easier frontend use
     const segments = transcriptionResult.segments?.map((segment: any, index: number) => ({
@@ -120,6 +112,7 @@ serve(async (req) => {
       })
 
     if (transcriptError) {
+      console.error('Failed to save transcript:', transcriptError)
       throw new Error('Failed to save transcript')
     }
 
@@ -132,40 +125,58 @@ serve(async (req) => {
       })
       .eq('id', recordingId)
 
+    console.log('Transcription completed successfully for recording:', recordingId)
+
+  } catch (error) {
+    console.error('Background transcription error:', error)
+    
+    // Update recording status to error
+    await supabaseClient
+      .from('recordings')
+      .update({ 
+        status: 'error',
+        error_message: error.message 
+      })
+      .eq('id', recordingId)
+  }
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const { recordingId } = await req.json()
+    
+    if (!recordingId) {
+      return new Response(
+        JSON.stringify({ error: 'Recording ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Start background transcription task
+    if ('EdgeRuntime' in globalThis) {
+      EdgeRuntime.waitUntil(performTranscription(recordingId))
+    } else {
+      // Fallback for local development
+      performTranscription(recordingId).catch(console.error)
+    }
+
+    // Return immediate response
     return new Response(
       JSON.stringify({ 
         success: true,
-        transcript: transcriptionResult.text,
-        segments: segments,
-        duration: transcriptionResult.duration
+        message: 'Transcription started in background'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Transcription error:', error)
-    
-    // Update recording status to error
-    if (req.url.includes('recordingId')) {
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      )
-      
-      const body = await req.json().catch(() => ({}))
-      if (body.recordingId) {
-        await supabaseClient
-          .from('recordings')
-          .update({ 
-            status: 'error',
-            error_message: error.message 
-          })
-          .eq('id', body.recordingId)
-      }
-    }
-
+    console.error('Request handler error:', error)
     return new Response(
-      JSON.stringify({ error: error.message || 'Transcription failed' }),
+      JSON.stringify({ error: error.message || 'Failed to start transcription' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
