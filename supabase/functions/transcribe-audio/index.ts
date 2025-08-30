@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-console.log('🔄 Transcribe function starting with fresh deployment - v5.0 - Debug API key')
+console.log('🔄 Transcribe function starting with fresh deployment - v6.0 - API key refresh')
 
 // Background transcription task
 async function performTranscription(recordingId: string) {
