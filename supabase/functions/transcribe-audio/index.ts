@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-console.log('🔄 Transcribe function starting with fresh deployment - v9.0 - Enhanced debugging')
+console.log('🔄 Transcribe function starting with fresh deployment - v10.0 - API key updated')
 
 // Background transcription task
 async function performTranscription(recordingId: string) {
@@ -162,6 +162,14 @@ async function performTranscription(recordingId: string) {
 
 serve(async (req) => {
   console.log('🔄 Function restarted with updated secrets - timestamp:', new Date().toISOString())
+  
+  // Immediate API key check at startup
+  const startupApiKey = Deno.env.get('OPENAI_API_KEY')
+  console.log('🔑 Startup API key check:', {
+    exists: !!startupApiKey,
+    length: startupApiKey?.length || 0,
+    firstChars: startupApiKey ? startupApiKey.substring(0, 10) : 'null'
+  })
   
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
