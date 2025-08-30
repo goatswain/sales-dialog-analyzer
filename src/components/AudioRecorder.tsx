@@ -165,6 +165,41 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
     }
   };
 
+  const testApiKey = async () => {
+    console.log('🔍 Testing OpenAI API key...');
+    try {
+      const response = await fetch('https://cuabhynevjfnswaciunm.supabase.co/functions/v1/check-api-key-v2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('API key test failed');
+      }
+
+      const result = await response.json();
+      console.log('🔑 API Key Test Result:', result);
+      
+      toast({
+        title: "API Key Test Results",
+        description: `Has Key: ${result.hasApiKey}, Length: ${result.keyLength}, Valid Format: ${result.startsWithSk}`,
+        variant: result.hasApiKey && result.startsWithSk ? "default" : "destructive",
+      });
+
+      return result;
+    } catch (error) {
+      console.error('❌ API key test error:', error);
+      toast({
+        title: "API Key Test Failed",
+        description: "Could not test API key status",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -297,34 +332,48 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
 
         {/* File Upload */}
         {!isRecording && !recordedBlob && (
-          <div className="text-center">
-            <div className="border-2 border-dashed border-muted rounded-lg p-6">
-              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-muted-foreground mb-2">Or upload an audio file</p>
+          <div className="space-y-4">
+            {/* API Key Test Button */}
+            <div className="text-center">
               <Button 
-                onClick={() => fileInputRef.current?.click()}
+                onClick={testApiKey}
                 variant="outline"
-                disabled={isUploading}
+                size="sm"
+                className="mb-4"
               >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  'Choose File'
-                )}
+                🔑 Test OpenAI API Key
               </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".mp3,.wav,.m4a,audio/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                Supports MP3, WAV, M4A (max 100MB)
-              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="border-2 border-dashed border-muted rounded-lg p-6">
+                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-muted-foreground mb-2">Or upload an audio file</p>
+                <Button 
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    'Choose File'
+                  )}
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".mp3,.wav,.m4a,audio/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Supports MP3, WAV, M4A (max 100MB)
+                </p>
+              </div>
             </div>
           </div>
         )}

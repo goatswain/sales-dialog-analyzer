@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.check-api-key-v2]
 verify_jwt = false
+
+[functions.test-api-key]
+verify_jwt = false
