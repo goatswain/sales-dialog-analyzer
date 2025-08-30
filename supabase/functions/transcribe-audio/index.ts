@@ -7,10 +7,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-console.log('🔄 Transcribe function starting with fresh deployment - v12.0 - Force redeployment')
+console.log('🔄 Transcribe function starting with fresh deployment - v13.0 - Debug secrets')
 
-// Force environment variable refresh
+// Force environment variable refresh and detailed logging
 const forceEnvCheck = () => {
+  console.log('🔍 Environment diagnostic:')
+  const allEnv = Deno.env.toObject()
+  console.log('📋 Total env vars:', Object.keys(allEnv).length)
+  console.log('🔑 All env var names:', Object.keys(allEnv))
+  
+  // Check all variations of OpenAI key
+  const variations = ['OPENAI_API_KEY', 'OPENAI_API_KEY_SECRET', 'OPENAI_KEY']
+  variations.forEach(keyName => {
+    const val = Deno.env.get(keyName)
+    console.log(`🔍 ${keyName}:`, {
+      exists: !!val,
+      length: val?.length || 0,
+      type: typeof val,
+      firstChars: val ? val.substring(0, 8) + '...' : 'null'
+    })
+  })
+  
   const key = Deno.env.get('OPENAI_API_KEY')
   console.log('🔄 Forced env check - API key status:', {
     exists: !!key,
@@ -20,8 +37,8 @@ const forceEnvCheck = () => {
   return key
 }
 
-// Background transcription task
-async function performTranscription(recordingId: string) {
+// Background transcription task (modified to accept API key parameter)
+async function performTranscriptionWithKey(recordingId: string, openaiApiKey: string) {
   console.log('🚀 Starting background transcription for:', recordingId)
   
   const supabaseClient = createClient(
@@ -58,26 +75,18 @@ async function performTranscription(recordingId: string) {
       .update({ status: 'transcribing' })
       .eq('id', recordingId)
 
-    // Get and validate OpenAI API key with detailed logging
-    console.log('🔑 Checking environment variables...')
-    const allEnvVars = Object.keys(Deno.env.toObject())
-    console.log('📝 Available env vars:', allEnvVars.filter(key => key.includes('OPENAI') || key.includes('API')))
-    console.log('📝 All env vars:', allEnvVars)
-    
-    const rawApiKey = Deno.env.get('OPENAI_API_KEY')
-    console.log('🔑 Raw API key exists:', !!rawApiKey, 'Length:', rawApiKey?.length || 0)
-    console.log('🔑 Raw API key value (first 10 chars):', rawApiKey ? rawApiKey.substring(0, 10) + '...' : 'null')
-    
-    if (!rawApiKey || rawApiKey.trim() === '') {
+    // Validate the provided API key
+    console.log('🔑 Validating provided API key...')
+    if (!openaiApiKey || openaiApiKey.trim() === '') {
       console.error('❌ OpenAI API key is missing or empty')
       throw new Error('OpenAI API key not configured')
     }
     
-    const openaiApiKey = rawApiKey.trim()
-    console.log('✅ API key validation - Length:', openaiApiKey.length, 'Starts with sk-:', openaiApiKey.startsWith('sk-'))
+    const validApiKey = openaiApiKey.trim()
+    console.log('✅ API key validation - Length:', validApiKey.length, 'Starts with sk-:', validApiKey.startsWith('sk-'))
     
-    if (!openaiApiKey.startsWith('sk-') || openaiApiKey.length < 40) {
-      console.error('❌ Invalid OpenAI API key format - length:', openaiApiKey.length, 'starts with sk-:', openaiApiKey.startsWith('sk-'))
+    if (!validApiKey.startsWith('sk-') || validApiKey.length < 40) {
+      console.error('❌ Invalid OpenAI API key format - length:', validApiKey.length, 'starts with sk-:', validApiKey.startsWith('sk-'))
       throw new Error('Invalid OpenAI API key format')
     }
 
@@ -106,7 +115,7 @@ async function performTranscription(recordingId: string) {
     const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${validApiKey}`,
       },
       body: formData,
     })
@@ -182,7 +191,7 @@ serve(async (req) => {
   }
 
   try {
-    const { recordingId } = await req.json()
+    const { recordingId, openaiApiKey } = await req.json()
     
     if (!recordingId) {
       return new Response(
@@ -191,16 +200,29 @@ serve(async (req) => {
       )
     }
 
-    console.log('🎬 Starting background transcription for recording:', recordingId)
+    // If API key is provided in request, use it; otherwise fall back to env
+    const effectiveApiKey = openaiApiKey || Deno.env.get('OPENAI_API_KEY')
     
-    // Start background transcription task
+    if (!effectiveApiKey) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'OpenAI API key required. Please provide it in the request or configure as environment variable.',
+          needsApiKey: true 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('🎬 Starting background transcription for recording:', recordingId)
+    console.log('🔑 API key source:', openaiApiKey ? 'request parameter' : 'environment variable')
+    
+    // Start background transcription task with API key
     if ('EdgeRuntime' in globalThis) {
       console.log('🌐 Using EdgeRuntime.waitUntil for background task')
-      EdgeRuntime.waitUntil(performTranscription(recordingId))
+      EdgeRuntime.waitUntil(performTranscriptionWithKey(recordingId, effectiveApiKey))
     } else {
       console.log('🏠 Using fallback for local development')
-      // Fallback for local development
-      performTranscription(recordingId).catch(console.error)
+      performTranscriptionWithKey(recordingId, effectiveApiKey).catch(console.error)
     }
 
     // Return immediate response
