@@ -7,7 +7,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-console.log('🔄 Transcribe function starting with fresh deployment - v11.0 - Secret refreshed')
+console.log('🔄 Transcribe function starting with fresh deployment - v12.0 - Force redeployment')
+
+// Force environment variable refresh
+const forceEnvCheck = () => {
+  const key = Deno.env.get('OPENAI_API_KEY')
+  console.log('🔄 Forced env check - API key status:', {
+    exists: !!key,
+    length: key?.length || 0,
+    hasPrefix: key?.startsWith('sk-') || false
+  })
+  return key
+}
 
 // Background transcription task
 async function performTranscription(recordingId: string) {
@@ -163,13 +174,8 @@ async function performTranscription(recordingId: string) {
 serve(async (req) => {
   console.log('🔄 Function restarted with updated secrets - timestamp:', new Date().toISOString())
   
-  // Immediate API key check at startup
-  const startupApiKey = Deno.env.get('OPENAI_API_KEY')
-  console.log('🔑 Startup API key check:', {
-    exists: !!startupApiKey,
-    length: startupApiKey?.length || 0,
-    firstChars: startupApiKey ? startupApiKey.substring(0, 10) : 'null'
-  })
+  // Force environment variable check
+  const apiKey = forceEnvCheck()
   
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
