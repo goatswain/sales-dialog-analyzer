@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-console.log('🔄 Transcribe function starting with fresh deployment - v8.0 - Direct call bypass')
+console.log('🔄 Transcribe function starting with fresh deployment - v9.0 - Enhanced debugging')
 
 // Background transcription task
 async function performTranscription(recordingId: string) {
@@ -51,9 +51,11 @@ async function performTranscription(recordingId: string) {
     console.log('🔑 Checking environment variables...')
     const allEnvVars = Object.keys(Deno.env.toObject())
     console.log('📝 Available env vars:', allEnvVars.filter(key => key.includes('OPENAI') || key.includes('API')))
+    console.log('📝 All env vars:', allEnvVars)
     
     const rawApiKey = Deno.env.get('OPENAI_API_KEY')
     console.log('🔑 Raw API key exists:', !!rawApiKey, 'Length:', rawApiKey?.length || 0)
+    console.log('🔑 Raw API key value (first 10 chars):', rawApiKey ? rawApiKey.substring(0, 10) + '...' : 'null')
     
     if (!rawApiKey || rawApiKey.trim() === '') {
       console.error('❌ OpenAI API key is missing or empty')
