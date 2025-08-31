@@ -93,43 +93,43 @@ const Index = () => {
     <div className="min-h-screen bg-background font-roboto">
       {/* Professional Top Bar */}
       <header className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">SC</span>
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-full">
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-primary-foreground font-bold text-sm">SC</span>
+              </div>
+              <h1 className="text-lg sm:text-xl font-poppins font-bold text-foreground truncate">Sales Coach AI</h1>
             </div>
-            <h1 className="text-xl font-poppins font-bold text-foreground">Sales Coach AI</h1>
+            
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
+                <span>Welcome,</span>
+                <span className="font-medium max-w-[100px] truncate">{user?.email?.split('@')[0] || 'User'}</span>
+              </div>
+              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-secondary-foreground font-medium text-sm">
+                  {(user?.email?.[0] || 'U').toUpperCase()}
+                </span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground flex-shrink-0">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          
-          <div className="flex items-center space-x-3">
-            <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
-              <span>Welcome,</span>
-              <span className="font-medium">{user?.email?.split('@')[0] || 'User'}</span>
-            </div>
-            <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
-              <span className="text-secondary-foreground font-medium text-sm">
-                {(user?.email?.[0] || 'U').toUpperCase()}
-              </span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
       </header>
 
-      <div className="container mx-auto p-6 max-w-4xl">
-        <div className="space-y-8">
-          {/* Audio Recorder */}
-          <AudioRecorder onUploadComplete={handleUploadComplete} />
+        <div className="container mx-auto p-4 sm:p-6 max-w-4xl">
+          <div className="space-y-6">
+            {/* Audio Recorder */}
+            <AudioRecorder onUploadComplete={handleUploadComplete} />
 
-          {/* Recordings List */}
-          <RecordingsList 
-            onSelectRecording={handleSelectRecording}
-            refreshTrigger={refreshTrigger}
-          />
+            {/* Recordings List */}
+            <RecordingsList 
+              onSelectRecording={handleSelectRecording}
+              refreshTrigger={refreshTrigger}
+            />
+          </div>
         </div>
-      </div>
     </div>
   );
 };

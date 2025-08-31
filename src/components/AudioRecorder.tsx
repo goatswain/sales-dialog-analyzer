@@ -231,22 +231,22 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">
       {/* Big Centered Record Button */}
-      <Card className="w-full max-w-lg mx-auto shadow-lg border-0 bg-gradient-to-br from-card to-accent/20">
-        <CardContent className="p-8">
-          <div className="text-center space-y-6">
+      <Card className="w-full max-w-sm sm:max-w-lg mx-auto shadow-lg border-0 bg-gradient-to-br from-card to-accent/20">
+        <CardContent className="p-4 sm:p-8">
+          <div className="text-center space-y-4 sm:space-y-6">
             <div>
-              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">Record Conversation</h2>
-              <p className="text-muted-foreground font-roboto">Capture your sales calls for AI analysis</p>
+              <h2 className="text-xl sm:text-2xl font-poppins font-bold text-foreground mb-2">Record Call</h2>
+              <p className="text-sm text-muted-foreground font-roboto">Capture sales calls for AI analysis</p>
             </div>
 
             {/* Recording Controls */}
             {!recordedBlob && (
-              <div className="flex flex-col items-center space-y-6">
+              <div className="flex flex-col items-center space-y-4 sm:space-y-6">
                 {isRecording ? (
                   <div className="text-center space-y-4">
-                    <div className="text-4xl font-inter font-bold text-primary mb-4">
+                    <div className="text-2xl sm:text-4xl font-inter font-bold text-primary mb-4">
                       {formatTime(recordingTime)}
                     </div>
                     <div className="relative">
@@ -254,13 +254,13 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
                         onClick={stopRecording}
                         variant="destructive"
                         size="lg"
-                        className="rounded-full w-24 h-24 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                        className="rounded-full w-20 h-20 sm:w-24 sm:h-24 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
                       >
-                        <Square className="w-8 h-8" />
+                        <Square className="w-6 h-6 sm:w-8 sm:h-8" />
                       </Button>
                       <div className="absolute inset-0 rounded-full bg-destructive/20 animate-pulse"></div>
                     </div>
-                    <p className="text-sm text-muted-foreground font-roboto">Recording in progress...</p>
+                    <p className="text-sm text-muted-foreground font-roboto">Recording...</p>
                   </div>
                 ) : (
                   <div className="text-center space-y-4">
@@ -268,14 +268,14 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
                       <Button 
                         onClick={startRecording}
                         size="lg"
-                        className="rounded-full w-24 h-24 bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                        className="rounded-full w-20 h-20 sm:w-24 sm:h-24 bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
                         disabled={isUploading}
                       >
-                        <Mic className="w-8 h-8" />
+                        <Mic className="w-6 h-6 sm:w-8 sm:h-8" />
                       </Button>
                       <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse"></div>
                     </div>
-                    <p className="text-sm text-muted-foreground font-roboto">Tap to start recording</p>
+                    <p className="text-sm text-muted-foreground font-roboto">Tap to record</p>
                   </div>
                 )}
               </div>
@@ -285,13 +285,13 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
             {recordedBlob && (
               <div className="text-center space-y-4">
                 <div className="text-lg font-poppins font-semibold text-foreground">Recording Complete</div>
-                <div className="text-muted-foreground font-roboto">Duration: {formatTime(recordingTime)}</div>
+                <div className="text-muted-foreground font-roboto text-sm">Duration: {formatTime(recordingTime)}</div>
                 <audio 
                   controls 
                   src={URL.createObjectURL(recordedBlob)}
                   className="w-full rounded-lg"
                 />
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                   <Button 
                     onClick={handleRecordedUpload}
                     disabled={isUploading}
@@ -305,7 +305,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
                     ) : (
                       <>
                         <Upload className="w-4 h-4 mr-2" />
-                        Analyze Recording
+                        Analyze
                       </>
                     )}
                   </Button>
@@ -315,6 +315,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
                       setRecordingTime(0);
                     }}
                     variant="outline"
+                    className="sm:w-auto"
                   >
                     Re-record
                   </Button>
@@ -327,16 +328,16 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
 
       {/* Upload File Card */}
       {!isRecording && !recordedBlob && (
-        <Card className="w-full max-w-lg mx-auto shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-          <CardContent className="p-6">
-            <div className="text-center space-y-4">
-              <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center mx-auto">
-                <Upload className="w-6 h-6 text-primary" />
+        <Card className="w-full max-w-sm sm:max-w-lg mx-auto shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+          <CardContent className="p-4 sm:p-6">
+            <div className="text-center space-y-3 sm:space-y-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent rounded-full flex items-center justify-center mx-auto">
+                <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-poppins font-semibold text-foreground mb-1">Upload Audio File</h3>
-                <p className="text-sm text-muted-foreground font-roboto">
-                  {isUploading ? 'Processing your file...' : 'Select an existing recording to analyze'}
+                <h3 className="font-poppins font-semibold text-foreground mb-1 text-sm sm:text-base">Upload Audio</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground font-roboto">
+                  {isUploading ? 'Processing...' : 'Select existing recording'}
                 </p>
               </div>
               {isUploading && (
@@ -353,7 +354,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
                 className="hidden"
               />
               <p className="text-xs text-muted-foreground font-roboto">
-                Supports MP3, WAV, M4A • Max 100MB
+                MP3, WAV, M4A • Max 100MB
               </p>
             </div>
           </CardContent>

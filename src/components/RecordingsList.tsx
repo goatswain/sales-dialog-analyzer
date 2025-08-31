@@ -190,57 +190,68 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-poppins font-bold text-foreground">Recent Conversations</h2>
-        <Badge variant="secondary" className="font-roboto">{recordings.length} recordings</Badge>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl sm:text-2xl font-poppins font-bold text-foreground">Recent Calls</h2>
+        <Badge variant="secondary" className="font-roboto text-xs flex-shrink-0">{recordings.length}</Badge>
       </div>
       
-      <div className="grid gap-4">
+      <div className="grid gap-3 sm:gap-4 w-full">
         {recordings.map((recording) => (
           <Card 
             key={recording.id} 
-            className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-md bg-gradient-to-r from-card to-accent/10"
+            className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-md bg-gradient-to-r from-card to-accent/10 w-full"
             onClick={() => recording.status === 'completed' && onSelectRecording(recording.id)}
           >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-poppins font-semibold text-lg text-foreground truncate">
-                      {recording.title || 'Sales Conversation'}
+            <CardContent className="p-4 w-full overflow-hidden">
+              <div className="flex items-start justify-between gap-3 w-full">
+                <div className="flex-1 min-w-0 space-y-2 sm:space-y-3 overflow-hidden">
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <h3 className="font-poppins font-semibold text-base sm:text-lg text-foreground truncate flex-1 min-w-0">
+                      {(recording.title || 'Sales Call').length > 20 
+                        ? `${(recording.title || 'Sales Call').substring(0, 20)}...` 
+                        : (recording.title || 'Sales Call')
+                      }
                     </h3>
-                    {getStatusBadge(recording.status)}
+                    <div className="flex-shrink-0">
+                      {getStatusBadge(recording.status)}
+                    </div>
                   </div>
                   
-                  <div className="flex items-center gap-6 text-sm text-muted-foreground font-roboto">
-                    <span className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      {formatDate(recording.created_at)}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-muted-foreground font-roboto w-full overflow-hidden">
+                    <span className="flex items-center gap-1 flex-shrink-0">
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="truncate">{formatDate(recording.created_at)}</span>
                     </span>
                     {recording.duration_seconds && (
-                      <span className="flex items-center gap-2">
-                        <FileAudio className="w-4 h-4" />
+                      <span className="flex items-center gap-1 flex-shrink-0">
+                        <FileAudio className="w-3 h-3 sm:w-4 sm:h-4" />
                         {formatDuration(recording.duration_seconds)}
                       </span>
                     )}
                     {recording.status === 'completed' && (
-                      <span className="flex items-center gap-2 text-secondary font-medium">
-                        <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                        AI Score: {Math.floor(Math.random() * 15) + 85}%
+                      <span className="flex items-center gap-1 text-secondary font-medium flex-shrink-0">
+                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-secondary rounded-full"></div>
+                        Score: {Math.floor(Math.random() * 15) + 85}%
                       </span>
                     )}
                   </div>
                   
-                  <p className="text-muted-foreground font-roboto line-clamp-2 leading-relaxed">
-                    {getSnippet(recording)}
+                  <p className="text-xs sm:text-sm text-muted-foreground font-roboto line-clamp-2 leading-relaxed overflow-hidden">
+                    {getSnippet(recording).length > 80 
+                      ? `${getSnippet(recording).substring(0, 80)}...` 
+                      : getSnippet(recording)
+                    }
                   </p>
 
                   {recording.error_message && (
-                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-                      <p className="text-sm text-destructive font-roboto">
-                        <AlertCircle className="w-4 h-4 inline mr-2" />
-                        {recording.error_message}
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-2 sm:p-3 w-full overflow-hidden">
+                      <p className="text-xs sm:text-sm text-destructive font-roboto break-words">
+                        <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                        {recording.error_message.length > 50 
+                          ? `${recording.error_message.substring(0, 50)}...` 
+                          : recording.error_message
+                        }
                       </p>
                     </div>
                   )}
@@ -250,13 +261,13 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
                   <Button 
                     variant="secondary" 
                     size="sm"
-                    className="ml-4 bg-secondary/10 hover:bg-secondary/20 text-secondary border-secondary/30"
+                    className="ml-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border-secondary/30 flex-shrink-0 text-xs px-2 sm:px-3"
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectRecording(recording.id);
                     }}
                   >
-                    View Analysis
+                    View
                   </Button>
                 )}
               </div>
