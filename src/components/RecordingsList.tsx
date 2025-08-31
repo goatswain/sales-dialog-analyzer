@@ -28,6 +28,7 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
 
   const fetchRecordings = async () => {
     try {
+      console.log('🔄 Fetching recordings...');
       const { data, error } = await supabase
         .from('recordings')
         .select(`
@@ -46,6 +47,7 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
         return;
       }
 
+      console.log('📊 Fetched recordings:', data?.length || 0);
       setRecordings((data || []).map(recording => ({
         ...recording,
         status: recording.status as 'uploaded' | 'transcribing' | 'completed' | 'error'
@@ -65,28 +67,50 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
   useEffect(() => {
     console.log('🔄 Setting up real-time subscriptions...');
     
-    const subscription = supabase
+    const channel = supabase
       .channel('recordings_and_transcripts_changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'recordings' },
-        (payload) => {
+        async (payload) => {
           console.log('📊 Recordings table change detected:', payload);
-          fetchRecordings();
+          console.log('📊 Event type:', payload.eventType);
+          console.log('📊 New record:', payload.new);
+          console.log('📊 Old record:', payload.old);
+          await fetchRecordings();
         }
       )
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'transcripts' },
-        (payload) => {
+        async (payload) => {
           console.log('📝 Transcripts table change detected:', payload);
-          fetchRecordings();
+          console.log('📝 Event type:', payload.eventType);
+          console.log('📝 New record:', payload.new);
+          await fetchRecordings();
         }
       )
       .subscribe((status) => {
         console.log('📡 Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to real-time updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel error - real-time subscription failed');
+        } else if (status === 'TIMED_OUT') {
+          console.error('⏰ Subscription timed out');
+        } else {
+          console.log('🔄 Subscription status:', status);
+        }
       });
 
+    // Fallback: Poll for updates every 10 seconds to catch any missed real-time events
+    const pollInterval = setInterval(async () => {
+      console.log('🔄 Polling for updates (fallback)...');
+      await fetchRecordings();
+    }, 10000);
+
     return () => {
-      subscription.unsubscribe();
+      console.log('🔌 Unsubscribing from real-time updates');
+      channel.unsubscribe();
+      clearInterval(pollInterval);
     };
   }, []);
 
