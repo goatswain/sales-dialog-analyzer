@@ -24,8 +24,24 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
   const { toast } = useToast();
 
   const startRecording = async () => {
+    console.log('🎤 Start recording button clicked');
+    
+    // Check if browser supports getUserMedia
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error('❌ Browser does not support getUserMedia');
+      toast({
+        title: "Not Supported",
+        description: "Your browser doesn't support audio recording.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      console.log('🔍 Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('✅ Microphone access granted');
+      
       const mediaRecorder = new MediaRecorder(stream);
       const chunks: BlobPart[] = [];
 
@@ -37,12 +53,15 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
         const blob = new Blob(chunks, { type: 'audio/wav' });
         setRecordedBlob(blob);
         stream.getTracks().forEach(track => track.stop());
+        console.log('✅ Recording stopped and blob created');
       };
 
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
       setRecordingTime(0);
+      
+      console.log('🎯 Recording started successfully');
 
       // Start timer
       timerRef.current = window.setInterval(() => {
@@ -50,10 +69,19 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
       }, 1000);
 
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      console.error('❌ Failed to start recording:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      let description = "Could not access microphone. Please check permissions.";
+      if (errorMessage.includes('Permission denied') || errorMessage.includes('NotAllowedError')) {
+        description = "Microphone access denied. Please allow microphone permissions and try again.";
+      } else if (errorMessage.includes('NotFoundError')) {
+        description = "No microphone found. Please connect a microphone and try again.";
+      }
+      
       toast({
         title: "Recording Failed",
-        description: "Could not access microphone. Please check permissions.",
+        description,
         variant: "destructive",
       });
     }
