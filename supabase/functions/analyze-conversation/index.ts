@@ -53,13 +53,22 @@ serve(async (req) => {
       .from('transcripts')
       .select('text, segments')
       .eq('recording_id', recordingId)
-      .single()
+      .maybeSingle()
     
     console.log('📋 Transcript query result:', { data: transcript, error: fetchError })
 
-    if (fetchError || !transcript) {
+    if (fetchError) {
+      console.error('❌ Database error:', fetchError)
       return new Response(
-        JSON.stringify({ error: 'Transcript not found' }),
+        JSON.stringify({ error: 'Database error: ' + fetchError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!transcript) {
+      console.log('⚠️ No transcript found for recording_id:', recordingId)
+      return new Response(
+        JSON.stringify({ error: 'Transcript not found for this recording' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
