@@ -15,7 +15,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [openaiApiKey, setOpenaiApiKey] = useState('');
+  
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -131,8 +131,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
       const url = `https://cuabhynevjfnswaciunm.supabase.co/functions/v1/transcribe-audio?t=${Date.now()}`;
       console.log('📡 Calling transcription URL:', url);
       
-      console.log('🔑 Using provided API key for transcription');
-
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -140,8 +138,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
           'Authorization': `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({ 
-          recordingId,
-          openaiApiKey: openaiApiKey.trim() // Pass the API key in the request
+          recordingId
         }),
       });
 
@@ -151,10 +148,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ Transcription response error:', errorData);
         
-        // If API key is needed, show specific message
-        if (errorData.needsApiKey) {
-          throw new Error('Please enter your OpenAI API key below to enable transcription');
-        }
         
         throw new Error(errorData.error || 'Transcription failed');
       }
@@ -179,9 +172,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
     }
   };
 
-  const validateApiKey = (key: string) => {
-    return key.trim() !== '' && key.startsWith('sk-') && key.length > 40;
-  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -237,34 +227,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
           <p className="text-muted-foreground">Record or upload your sales conversation</p>
         </div>
 
-        {/* OpenAI API Key Input */}
-        <div className="space-y-2">
-          <label htmlFor="apiKey" className="text-sm font-medium">
-            OpenAI API Key (Required for Transcription)
-          </label>
-          <div className="flex space-x-2">
-            <input
-              id="apiKey"
-              type="password"
-              placeholder="sk-..."
-              value={openaiApiKey}
-              onChange={(e) => setOpenaiApiKey(e.target.value)}
-              className="flex-1 px-3 py-2 border border-input rounded-md text-sm"
-            />
-            <div className="flex items-center">
-              {openaiApiKey && (
-                validateApiKey(openaiApiKey) ? (
-                  <span className="text-green-600 text-sm">✓ Valid</span>
-                ) : (
-                  <span className="text-red-600 text-sm">✗ Invalid</span>
-                )
-              )}
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline">platform.openai.com</a>
-          </p>
-        </div>
 
         {/* Recording Controls */}
         {!recordedBlob && (
@@ -291,13 +253,11 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
                   variant="default"
                   size="lg"
                   className="rounded-full w-16 h-16 mb-2"
-                  disabled={isUploading || !validateApiKey(openaiApiKey)}
+                  disabled={isUploading}
                 >
                   <Mic className="w-6 h-6" />
                 </Button>
-                <p className="text-sm text-muted-foreground">
-                  {!validateApiKey(openaiApiKey) ? 'Enter API key to enable recording' : 'Click to start recording'}
-                </p>
+                <p className="text-sm text-muted-foreground">Click to start recording</p>
               </div>
             )}
           </div>
@@ -316,7 +276,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
             <div className="flex space-x-2">
               <Button 
                 onClick={handleRecordedUpload}
-                disabled={isUploading || !validateApiKey(openaiApiKey)}
+                disabled={isUploading}
                 className="flex-1"
               >
                 {isUploading ? (
@@ -354,7 +314,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
                 <Button 
                   onClick={() => fileInputRef.current?.click()}
                   variant="outline"
-                  disabled={isUploading || !validateApiKey(openaiApiKey)}
+                  disabled={isUploading}
                 >
                   {isUploading ? (
                     <>
@@ -362,7 +322,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
                       Uploading...
                     </>
                   ) : (
-                    !validateApiKey(openaiApiKey) ? 'Enter API Key First' : 'Choose File'
+                    'Choose File'
                   )}
                 </Button>
                 <input
