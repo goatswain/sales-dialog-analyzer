@@ -48,11 +48,14 @@ serve(async (req) => {
     )
 
     // Get transcript data
+    console.log('🔍 Looking for transcript with recording_id:', recordingId)
     const { data: transcript, error: fetchError } = await supabaseClient
       .from('transcripts')
       .select('text, segments')
       .eq('recording_id', recordingId)
       .single()
+    
+    console.log('📋 Transcript query result:', { data: transcript, error: fetchError })
 
     if (fetchError || !transcript) {
       return new Response(
