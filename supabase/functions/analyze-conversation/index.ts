@@ -44,14 +44,14 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // Get transcript data
+    // Get transcript data and user_id
     console.log('🔍 Looking for transcript with recording_id:', recordingId)
     const { data: transcript, error: fetchError } = await supabaseClient
       .from('transcripts')
-      .select('text, segments')
+      .select('text, segments, user_id')
       .eq('recording_id', recordingId)
       .maybeSingle()
     
@@ -138,6 +138,7 @@ serve(async (req) => {
       .from('conversation_notes')
       .insert({
         recording_id: recordingId,
+        user_id: transcript.user_id,
         question: question,
         answer: JSON.stringify(analysis),
         timestamps: analysis.timestamps || []
