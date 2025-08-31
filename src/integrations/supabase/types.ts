@@ -22,6 +22,7 @@ export type Database = {
           question: string
           recording_id: string | null
           timestamps: Json | null
+          user_id: string | null
         }
         Insert: {
           answer: string
@@ -30,6 +31,7 @@ export type Database = {
           question: string
           recording_id?: string | null
           timestamps?: Json | null
+          user_id?: string | null
         }
         Update: {
           answer?: string
@@ -38,6 +40,7 @@ export type Database = {
           question?: string
           recording_id?: string | null
           timestamps?: Json | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -48,6 +51,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       recordings: {
         Row: {
@@ -60,6 +87,7 @@ export type Database = {
           id: string
           status: string | null
           title: string | null
+          user_id: string | null
         }
         Insert: {
           audio_filename?: string | null
@@ -71,6 +99,7 @@ export type Database = {
           id?: string
           status?: string | null
           title?: string | null
+          user_id?: string | null
         }
         Update: {
           audio_filename?: string | null
@@ -82,6 +111,7 @@ export type Database = {
           id?: string
           status?: string | null
           title?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -93,6 +123,7 @@ export type Database = {
           segments: Json | null
           speaker_count: number | null
           text: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -101,6 +132,7 @@ export type Database = {
           segments?: Json | null
           speaker_count?: number | null
           text: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -109,6 +141,7 @@ export type Database = {
           segments?: Json | null
           speaker_count?: number | null
           text?: string
+          user_id?: string | null
         }
         Relationships: [
           {
