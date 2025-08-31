@@ -12,10 +12,34 @@ serve(async (req) => {
   }
 
   try {
+    // Get authorization header
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { authorization: authHeader },
+        },
+      }
     )
+
+    // Verify user authentication
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     const formData = await req.formData()
     const audioFile = formData.get('audio') as File
@@ -60,7 +84,8 @@ serve(async (req) => {
         audio_url: publicUrl,
         audio_filename: filename,
         file_size_bytes: audioFile.size,
-        status: 'uploaded'
+        status: 'uploaded',
+        user_id: user.id // Add user ownership
       })
       .select()
       .single()

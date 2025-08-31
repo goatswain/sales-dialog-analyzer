@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Mic, Square, Upload, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/components/AuthGuard';
 
 interface AudioRecorderProps {
   onUploadComplete: (recordingId: string) => void;
 }
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
+  const { session } = useAuth();
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -78,6 +80,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
 
       const response = await fetch('https://cuabhynevjfnswaciunm.supabase.co/functions/v1/upload-audio', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
         body: formData,
       });
 
@@ -132,7 +137,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1YWJoeW5ldmpmbnN3YWNpdW5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNTYwMjYsImV4cCI6MjA3MTkzMjAyNn0.waKYoAMsVSeLZ7Xtlt5O2XWm5qtLHvp8FDjqSiXysRc`,
+          'Authorization': `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({ 
           recordingId,

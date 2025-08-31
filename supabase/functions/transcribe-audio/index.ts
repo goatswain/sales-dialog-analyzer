@@ -38,32 +38,34 @@ const forceEnvCheck = () => {
 }
 
 // Background transcription task (modified to accept API key parameter)
-async function performTranscriptionWithKey(recordingId: string, openaiApiKey: string) {
-  console.log('🚀 Starting background transcription for:', recordingId)
+async function performTranscriptionWithKey(recordingId: string, openaiApiKey: string, userId: string) {
+  console.log('🚀 Starting background transcription for:', recordingId, 'user:', userId)
   
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // Use service role for background task
   )
 
   try {
-    // Get recording data
+    // Get recording data with user ownership check
     console.log('📄 Fetching recording data...')
     const { data: recording, error: fetchError } = await supabaseClient
       .from('recordings')
       .select('*')
       .eq('id', recordingId)
+      .eq('user_id', userId) // Verify user ownership
       .maybeSingle()
 
     if (fetchError || !recording) {
-      console.error('❌ Recording not found:', fetchError)
+      console.error('❌ Recording not found or access denied:', fetchError)
       await supabaseClient
         .from('recordings')
         .update({ 
           status: 'error',
-          error_message: 'Recording not found' 
+          error_message: 'Recording not found or access denied' 
         })
         .eq('id', recordingId)
+        .eq('user_id', userId)
       return
     }
 
@@ -74,6 +76,7 @@ async function performTranscriptionWithKey(recordingId: string, openaiApiKey: st
       .from('recordings')
       .update({ status: 'transcribing' })
       .eq('id', recordingId)
+      .eq('user_id', userId)
 
     // Validate the provided API key
     console.log('🔑 Validating provided API key...')
@@ -147,7 +150,8 @@ async function performTranscriptionWithKey(recordingId: string, openaiApiKey: st
         recording_id: recordingId,
         text: transcriptionResult.text,
         segments: segments,
-        speaker_count: 2
+        speaker_count: 2,
+        user_id: userId // Add user ownership
       })
 
     if (transcriptError) {
@@ -163,6 +167,7 @@ async function performTranscriptionWithKey(recordingId: string, openaiApiKey: st
         duration_seconds: Math.round(transcriptionResult.duration || 0)
       })
       .eq('id', recordingId)
+      .eq('user_id', userId)
 
     console.log('🎉 Transcription completed successfully for recording:', recordingId)
 
@@ -177,6 +182,7 @@ async function performTranscriptionWithKey(recordingId: string, openaiApiKey: st
         error_message: error.message 
       })
       .eq('id', recordingId)
+      .eq('user_id', userId)
   }
 }
 
@@ -191,6 +197,35 @@ serve(async (req) => {
   }
 
   try {
+    // Get authorization header
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { authorization: authHeader },
+        },
+      }
+    )
+
+    // Verify user authentication
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { recordingId, openaiApiKey } = await req.json()
     
     if (!recordingId) {
@@ -213,16 +248,16 @@ serve(async (req) => {
       )
     }
 
-    console.log('🎬 Starting background transcription for recording:', recordingId)
+    console.log('🎬 Starting background transcription for recording:', recordingId, 'user:', user.id)
     console.log('🔑 API key source:', openaiApiKey ? 'request parameter' : 'environment variable')
     
-    // Start background transcription task with API key
+    // Start background transcription task with API key and user ID
     if ('EdgeRuntime' in globalThis) {
       console.log('🌐 Using EdgeRuntime.waitUntil for background task')
-      EdgeRuntime.waitUntil(performTranscriptionWithKey(recordingId, effectiveApiKey))
+      EdgeRuntime.waitUntil(performTranscriptionWithKey(recordingId, effectiveApiKey, user.id))
     } else {
       console.log('🏠 Using fallback for local development')
-      performTranscriptionWithKey(recordingId, effectiveApiKey).catch(console.error)
+      performTranscriptionWithKey(recordingId, effectiveApiKey, user.id).catch(console.error)
     }
 
     // Return immediate response
