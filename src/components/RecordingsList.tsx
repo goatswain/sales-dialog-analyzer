@@ -63,21 +63,27 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
 
   // Set up real-time subscriptions for status updates
   useEffect(() => {
+    console.log('🔄 Setting up real-time subscriptions...');
+    
     const subscription = supabase
       .channel('recordings_and_transcripts_changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'recordings' },
-        () => {
+        (payload) => {
+          console.log('📊 Recordings table change detected:', payload);
           fetchRecordings();
         }
       )
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'transcripts' },
-        () => {
+        (payload) => {
+          console.log('📝 Transcripts table change detected:', payload);
           fetchRecordings();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status);
+      });
 
     return () => {
       subscription.unsubscribe();
