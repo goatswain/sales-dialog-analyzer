@@ -61,12 +61,18 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
     fetchRecordings();
   }, [refreshTrigger]);
 
-  // Set up real-time subscription for status updates
+  // Set up real-time subscriptions for status updates
   useEffect(() => {
     const subscription = supabase
-      .channel('recordings_changes')
+      .channel('recordings_and_transcripts_changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'recordings' },
+        () => {
+          fetchRecordings();
+        }
+      )
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'transcripts' },
         () => {
           fetchRecordings();
         }
