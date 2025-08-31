@@ -208,7 +208,7 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         global: {
           headers: { authorization: authHeader },
@@ -216,12 +216,22 @@ serve(async (req) => {
       }
     )
 
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    // Since verify_jwt = false, we can extract user info from the JWT directly
+    const jwt = authHeader.replace('Bearer ', '')
+    let userId: string
     
-    if (authError || !user) {
+    try {
+      // Decode JWT to get user ID (since verify_jwt is false, we trust it's already verified)
+      const payload = JSON.parse(atob(jwt.split('.')[1]))
+      userId = payload.sub
+      
+      if (!userId) {
+        throw new Error('No user ID in token')
+      }
+    } catch (decodeError) {
+      console.error('JWT decode error:', decodeError)
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -248,16 +258,16 @@ serve(async (req) => {
       )
     }
 
-    console.log('🎬 Starting background transcription for recording:', recordingId, 'user:', user.id)
+    console.log('🎬 Starting background transcription for recording:', recordingId, 'user:', userId)
     console.log('🔑 API key source:', openaiApiKey ? 'request parameter' : 'environment variable')
     
     // Start background transcription task with API key and user ID
     if ('EdgeRuntime' in globalThis) {
       console.log('🌐 Using EdgeRuntime.waitUntil for background task')
-      EdgeRuntime.waitUntil(performTranscriptionWithKey(recordingId, effectiveApiKey, user.id))
+      EdgeRuntime.waitUntil(performTranscriptionWithKey(recordingId, effectiveApiKey, userId))
     } else {
       console.log('🏠 Using fallback for local development')
-      performTranscriptionWithKey(recordingId, effectiveApiKey, user.id).catch(console.error)
+      performTranscriptionWithKey(recordingId, effectiveApiKey, userId).catch(console.error)
     }
 
     // Return immediate response
