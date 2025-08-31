@@ -231,127 +231,135 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardContent className="p-6 space-y-4">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Sales Recorder</h2>
-          <p className="text-muted-foreground">Record or upload your sales conversation</p>
-        </div>
+    <div className="space-y-6">
+      {/* Big Centered Record Button */}
+      <Card className="w-full max-w-lg mx-auto shadow-lg border-0 bg-gradient-to-br from-card to-accent/20">
+        <CardContent className="p-8">
+          <div className="text-center space-y-6">
+            <div>
+              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">Record Conversation</h2>
+              <p className="text-muted-foreground font-roboto">Capture your sales calls for AI analysis</p>
+            </div>
 
-
-        {/* Recording Controls */}
-        {!recordedBlob && (
-          <div className="flex flex-col items-center space-y-4">
-            {isRecording ? (
-              <div className="text-center">
-                <div className="text-3xl font-mono text-primary mb-2">
-                  {formatTime(recordingTime)}
-                </div>
-                <Button 
-                  onClick={stopRecording}
-                  variant="destructive"
-                  size="lg"
-                  className="rounded-full w-16 h-16"
-                >
-                  <Square className="w-6 h-6" />
-                </Button>
-                <p className="text-sm text-muted-foreground mt-2">Click to stop recording</p>
+            {/* Recording Controls */}
+            {!recordedBlob && (
+              <div className="flex flex-col items-center space-y-6">
+                {isRecording ? (
+                  <div className="text-center space-y-4">
+                    <div className="text-4xl font-inter font-bold text-primary mb-4">
+                      {formatTime(recordingTime)}
+                    </div>
+                    <div className="relative">
+                      <Button 
+                        onClick={stopRecording}
+                        variant="destructive"
+                        size="lg"
+                        className="rounded-full w-24 h-24 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                      >
+                        <Square className="w-8 h-8" />
+                      </Button>
+                      <div className="absolute inset-0 rounded-full bg-destructive/20 animate-pulse"></div>
+                    </div>
+                    <p className="text-sm text-muted-foreground font-roboto">Recording in progress...</p>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-4">
+                    <div className="relative">
+                      <Button 
+                        onClick={startRecording}
+                        size="lg"
+                        className="rounded-full w-24 h-24 bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                        disabled={isUploading}
+                      >
+                        <Mic className="w-8 h-8" />
+                      </Button>
+                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse"></div>
+                    </div>
+                    <p className="text-sm text-muted-foreground font-roboto">Tap to start recording</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="text-center">
-                <Button 
-                  onClick={startRecording}
-                  variant="default"
-                  size="lg"
-                  className="rounded-full w-16 h-16 mb-2"
-                  disabled={isUploading}
-                >
-                  <Mic className="w-6 h-6" />
-                </Button>
-                <p className="text-sm text-muted-foreground">Click to start recording</p>
+            )}
+
+            {/* Recorded Audio Preview */}
+            {recordedBlob && (
+              <div className="text-center space-y-4">
+                <div className="text-lg font-poppins font-semibold text-foreground">Recording Complete</div>
+                <div className="text-muted-foreground font-roboto">Duration: {formatTime(recordingTime)}</div>
+                <audio 
+                  controls 
+                  src={URL.createObjectURL(recordedBlob)}
+                  className="w-full rounded-lg"
+                />
+                <div className="flex space-x-3">
+                  <Button 
+                    onClick={handleRecordedUpload}
+                    disabled={isUploading}
+                    className="flex-1 bg-secondary hover:bg-secondary/90"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Analyze Recording
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setRecordedBlob(null);
+                      setRecordingTime(0);
+                    }}
+                    variant="outline"
+                  >
+                    Re-record
+                  </Button>
+                </div>
               </div>
             )}
           </div>
-        )}
+        </CardContent>
+      </Card>
 
-        {/* Recorded Audio Preview */}
-        {recordedBlob && (
-          <div className="text-center space-y-3">
-            <div className="text-lg font-semibold">Recording Complete</div>
-            <div className="text-muted-foreground">Duration: {formatTime(recordingTime)}</div>
-            <audio 
-              controls 
-              src={URL.createObjectURL(recordedBlob)}
-              className="w-full"
-            />
-            <div className="flex space-x-2">
-              <Button 
-                onClick={handleRecordedUpload}
-                disabled={isUploading}
-                className="flex-1"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload & Transcribe
-                  </>
-                )}
-              </Button>
-              <Button 
-                onClick={() => {
-                  setRecordedBlob(null);
-                  setRecordingTime(0);
-                }}
-                variant="outline"
-              >
-                Re-record
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* File Upload */}
-        {!isRecording && !recordedBlob && (
-          <div className="space-y-4">            
-            <div className="text-center">
-              <div className="border-2 border-dashed border-muted rounded-lg p-6">
-                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-muted-foreground mb-2">Or upload an audio file</p>
-                <Button 
-                  onClick={() => fileInputRef.current?.click()}
-                  variant="outline"
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    'Choose File'
-                  )}
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".mp3,.wav,.m4a,audio/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Supports MP3, WAV, M4A (max 100MB)
+      {/* Upload File Card */}
+      {!isRecording && !recordedBlob && (
+        <Card className="w-full max-w-lg mx-auto shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center mx-auto">
+                <Upload className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-poppins font-semibold text-foreground mb-1">Upload Audio File</h3>
+                <p className="text-sm text-muted-foreground font-roboto">
+                  {isUploading ? 'Processing your file...' : 'Select an existing recording to analyze'}
                 </p>
               </div>
+              {isUploading && (
+                <div className="flex items-center justify-center space-x-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span className="text-sm text-primary font-medium">Uploading...</span>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".mp3,.wav,.m4a,audio/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <p className="text-xs text-muted-foreground font-roboto">
+                Supports MP3, WAV, M4A • Max 100MB
+              </p>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 
