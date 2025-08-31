@@ -105,10 +105,17 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
           console.log('🎯 About to call startTranscription with ID:', result.recording.id);
           await startTranscription(result.recording.id);
           console.log('✅ Transcription call completed');
+          
+          // Reset component state after successful upload and transcription start
+          setRecordedBlob(null);
+          setRecordingTime(0);
+          
           onUploadComplete(result.recording.id);
         } catch (transcribeError) {
           console.error('💥 Transcription error:', transcribeError);
-          // Don't throw - still complete the upload
+          // Still reset state even if transcription fails, and complete the upload
+          setRecordedBlob(null);
+          setRecordingTime(0);
           onUploadComplete(result.recording.id);
         }
       }
@@ -200,6 +207,11 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
 
       uploadAudio(file);
     }
+    
+    // Reset the file input so the same file can be uploaded again
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   const handleRecordedUpload = () => {
@@ -208,8 +220,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
         type: 'audio/wav'
       });
       uploadAudio(file);
-      setRecordedBlob(null);
-      setRecordingTime(0);
+      // Note: State will be reset in uploadAudio after successful upload
     }
   };
 
