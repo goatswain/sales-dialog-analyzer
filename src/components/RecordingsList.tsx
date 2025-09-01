@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, FileAudio, Loader2, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Clock, FileAudio, Loader2, AlertCircle, Edit2, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Recording {
@@ -25,6 +26,9 @@ interface RecordingsListProps {
 const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refreshTrigger }) => {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const fetchRecordings = async () => {
     try {
@@ -162,6 +166,46 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
     return recording.status === 'completed' ? 'No transcript available' : 'Processing...';
   };
 
+  const startEditing = (recording: Recording) => {
+    setEditingId(recording.id);
+    setEditTitle(recording.title || 'Sales Call');
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditTitle('');
+  };
+
+  const saveTitle = async (recordingId: string) => {
+    if (!editTitle.trim()) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('recordings')
+        .update({ title: editTitle.trim() })
+        .eq('id', recordingId);
+
+      if (error) {
+        console.error('Error updating title:', error);
+        return;
+      }
+
+      // Update local state
+      setRecordings(prev => prev.map(recording => 
+        recording.id === recordingId 
+          ? { ...recording, title: editTitle.trim() }
+          : recording
+      ));
+      
+      cancelEditing();
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card className="shadow-md">
@@ -200,19 +244,76 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
         {recordings.map((recording) => (
           <Card 
             key={recording.id} 
-            className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-md bg-gradient-to-r from-card to-accent/10 w-full"
+            className="group cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-md bg-gradient-to-r from-card to-accent/10 w-full"
             onClick={() => recording.status === 'completed' && onSelectRecording(recording.id)}
           >
             <CardContent className="p-4 w-full overflow-hidden">
               <div className="flex items-start justify-between gap-3 w-full">
                 <div className="flex-1 min-w-0 space-y-2 sm:space-y-3 overflow-hidden">
                   <div className="flex items-center justify-between gap-2 w-full">
-                    <h3 className="font-poppins font-semibold text-base sm:text-lg text-foreground truncate flex-1 min-w-0">
-                      {(recording.title || 'Sales Call').length > 20 
-                        ? `${(recording.title || 'Sales Call').substring(0, 20)}...` 
-                        : (recording.title || 'Sales Call')
-                      }
-                    </h3>
+                    {editingId === recording.id ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <Input
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          className="flex-1 text-base sm:text-lg font-poppins font-semibold"
+                          placeholder="Recording title"
+                          disabled={saving}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              saveTitle(recording.id);
+                            } else if (e.key === 'Escape') {
+                              cancelEditing();
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            saveTitle(recording.id);
+                          }}
+                          disabled={saving || !editTitle.trim()}
+                          className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cancelEditing();
+                          }}
+                          disabled={saving}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <h3 className="font-poppins font-semibold text-base sm:text-lg text-foreground truncate flex-1 min-w-0">
+                          {(recording.title || 'Sales Call').length > 20 
+                            ? `${(recording.title || 'Sales Call').substring(0, 20)}...` 
+                            : (recording.title || 'Sales Call')
+                          }
+                        </h3>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditing(recording);
+                          }}
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                     <div className="flex-shrink-0">
                       {getStatusBadge(recording.status)}
                     </div>
