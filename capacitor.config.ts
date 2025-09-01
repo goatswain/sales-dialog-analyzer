@@ -20,9 +20,6 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
-  },
-  ios: {
-    scheme: 'Sales Coach'
   }
 };
 
