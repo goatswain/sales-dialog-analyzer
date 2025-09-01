@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, BarChart3 } from 'lucide-react';
+import { LogOut, User, BarChart3, CreditCard } from 'lucide-react';
 import AudioRecorder from '@/components/AudioRecorder';
 import RecordingsList from '@/components/RecordingsList';
 import TranscriptViewer from '@/components/TranscriptViewer';
@@ -114,6 +114,15 @@ const Index = () => {
               >
                 <BarChart3 className="h-4 w-4 mr-1" />
                 <span className="hidden sm:inline">Coaching</span>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/pricing')}
+                className="text-muted-foreground hover:text-foreground flex-shrink-0"
+              >
+                <CreditCard className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Pricing</span>
               </Button>
               <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Welcome,</span>
