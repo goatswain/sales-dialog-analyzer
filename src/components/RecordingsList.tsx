@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Clock, FileAudio, Loader2, AlertCircle, Edit2, Check, X } from 'lucide-react';
+import { Clock, FileAudio, Loader2, AlertCircle, Edit2, Check, X, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Recording {
@@ -29,6 +29,7 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const fetchRecordings = async () => {
     try {
@@ -206,6 +207,45 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
     }
   };
 
+  const deleteRecording = async (recordingId: string) => {
+    if (!confirm('Are you sure you want to delete this recording? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeleting(recordingId);
+    try {
+      // First delete associated transcripts and conversation notes
+      await supabase
+        .from('transcripts')
+        .delete()
+        .eq('recording_id', recordingId);
+
+      await supabase
+        .from('conversation_notes')
+        .delete()
+        .eq('recording_id', recordingId);
+
+      // Then delete the recording
+      const { error } = await supabase
+        .from('recordings')
+        .delete()
+        .eq('id', recordingId);
+
+      if (error) {
+        console.error('Error deleting recording:', error);
+        return;
+      }
+
+      // Update local state
+      setRecordings(prev => prev.filter(recording => recording.id !== recordingId));
+      
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   if (loading) {
     return (
       <Card className="shadow-md">
@@ -301,17 +341,35 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
                             : (recording.title || 'Sales Call')
                           }
                         </h3>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startEditing(recording);
-                          }}
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditing(recording);
+                            }}
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteRecording(recording.id);
+                            }}
+                            disabled={deleting === recording.id}
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            {deleting === recording.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     )}
                     <div className="flex-shrink-0">
