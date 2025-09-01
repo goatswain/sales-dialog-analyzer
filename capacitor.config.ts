@@ -20,6 +20,9 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+  },
+  ios: {
+    scheme: 'App'
   }
 };
 
