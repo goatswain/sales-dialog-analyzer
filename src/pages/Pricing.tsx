@@ -151,7 +151,11 @@ const Pricing = () => {
           <p className="text-muted-foreground mb-4">
             Need a custom solution for your team?
           </p>
-          <Button variant="ghost" className="text-primary hover:text-primary/80">
+          <Button 
+            variant="ghost" 
+            className="text-primary hover:text-primary/80"
+            onClick={() => window.location.href = 'mailto:Swainaicontact@gmail.com?subject=Custom Solution Inquiry'}
+          >
             Contact Sales
           </Button>
         </div>
