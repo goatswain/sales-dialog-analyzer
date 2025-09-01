@@ -56,8 +56,8 @@ const Index = () => {
         <header className="bg-card border-b border-border sticky top-0 z-10">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center">
-                <img src="/lovable-uploads/6786520a-2fb0-40cc-b0e5-8f5bed07bb1d.png" alt="Swain AI Logo" className="w-8 h-8 object-contain" />
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">SA</span>
               </div>
               <h1 className="text-xl font-poppins font-bold text-foreground">Swain AI</h1>
             </div>
@@ -95,8 +95,8 @@ const Index = () => {
       <header className="bg-card border-b border-border sticky top-0 z-10">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-full">
             <div className="flex items-center space-x-2 min-w-0 flex-1">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
-                <img src="/lovable-uploads/6786520a-2fb0-40cc-b0e5-8f5bed07bb1d.png" alt="Swain AI Logo" className="w-8 h-8 object-contain" />
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-primary-foreground font-bold text-sm">SA</span>
               </div>
               <h1 className="text-lg sm:text-xl font-poppins font-bold text-foreground truncate">Swain AI</h1>
             </div>
