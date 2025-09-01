@@ -194,7 +194,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      validate_audio_upload: {
+        Args: { content_type: string; file_name: string; file_size: number }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
