@@ -110,25 +110,22 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
 
     setIsAnalyzing(true);
     try {
-      const response = await fetch('https://cuabhynevjfnswaciunm.supabase.co/functions/v1/analyze-conversation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('analyze-conversation', {
+        body: {
           recordingId: recordingId,
           question: question.trim(),
-        }),
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('Analysis failed');
+      if (error) {
+        throw new Error(error.message || 'Analysis failed');
       }
 
-      const result = await response.json();
-      if (result.success) {
-        setAnalysis(result.analysis);
+      if (data?.success) {
+        setAnalysis(data.analysis);
         setQuestion('');
+      } else {
+        throw new Error('Analysis failed');
       }
     } catch (error) {
       console.error('Analysis error:', error);
