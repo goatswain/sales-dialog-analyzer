@@ -59,7 +59,7 @@ const Index = () => {
               <img 
                 src="/lovable-uploads/0661e838-ae1b-4b7a-ba8d-98e91f080271.png" 
                 alt="Swain AI Logo" 
-                className="w-8 h-8 object-contain"
+                className="w-10 h-10 object-contain"
               />
               <h1 className="text-xl font-poppins font-bold text-foreground">Swain AI</h1>
             </div>
@@ -100,7 +100,7 @@ const Index = () => {
               <img 
                 src="/lovable-uploads/0661e838-ae1b-4b7a-ba8d-98e91f080271.png" 
                 alt="Swain AI Logo" 
-                className="w-8 h-8 object-contain flex-shrink-0"
+                className="w-10 h-10 object-contain flex-shrink-0"
               />
               <h1 className="text-lg sm:text-xl font-poppins font-bold text-foreground truncate">Swain AI</h1>
             </div>
