@@ -88,14 +88,25 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
   };
 
   const stopRecording = () => {
+    console.log('🛑 stopRecording called, current state:', { 
+      isRecording, 
+      hasMediaRecorder: !!mediaRecorderRef.current,
+      mediaRecorderState: mediaRecorderRef.current?.state 
+    });
+    
     if (mediaRecorderRef.current && isRecording) {
+      console.log('✅ Stopping media recorder...');
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       
       if (timerRef.current) {
+        console.log('✅ Clearing timer...');
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      console.log('✅ Stop recording completed');
+    } else {
+      console.log('❌ Cannot stop - mediaRecorder or isRecording issue');
     }
   };
 
@@ -279,14 +290,22 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
                     </div>
                     <div className="relative">
                       <Button 
-                        onClick={stopRecording}
+                        onClick={(e) => {
+                          console.log('🛑 STOP BUTTON CLICKED!', e);
+                          e.preventDefault();
+                          e.stopPropagation();
+                          stopRecording();
+                        }}
+                        onTouchStart={(e) => {
+                          console.log('📱 STOP TOUCH START!', e);
+                        }}
                         variant="destructive"
                         size="lg"
-                        className="rounded-full w-20 h-20 sm:w-24 sm:h-24 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                        className="rounded-full w-20 h-20 sm:w-24 sm:h-24 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 relative z-10"
                       >
                         <Square className="w-6 h-6 sm:w-8 sm:h-8" />
                       </Button>
-                      <div className="absolute inset-0 rounded-full bg-destructive/20 animate-pulse"></div>
+                      <div className="absolute inset-0 rounded-full bg-destructive/20 animate-pulse pointer-events-none"></div>
                     </div>
                     <p className="text-sm text-muted-foreground font-roboto">Recording...</p>
                   </div>
