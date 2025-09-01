@@ -5,14 +5,20 @@ import { LogOut, User, BarChart3, CreditCard } from 'lucide-react';
 import AudioRecorder from '@/components/AudioRecorder';
 import RecordingsList from '@/components/RecordingsList';
 import TranscriptViewer from '@/components/TranscriptViewer';
+import SubscriptionBanner from '@/components/SubscriptionBanner';
+import ProBadge from '@/components/ProBadge';
 import { useAuth } from '@/components/AuthGuard';
+import { useSubscription } from '@/hooks/useSubscription';
 
 const Index = () => {
   const { user, session, loading, signOut } = useAuth();
+  const { subscriptionData, showSuccessBanner, dismissSuccessBanner } = useSubscription();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<'home' | 'transcript'>('home');
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const isProUser = subscriptionData?.subscribed || false;
 
   useEffect(() => {
     if (!loading && !session) {
@@ -52,8 +58,14 @@ const Index = () => {
   if (currentView === 'transcript' && selectedRecordingId) {
     return (
       <div className="min-h-screen bg-background font-roboto">
+        {/* Success Banner */}
+        <SubscriptionBanner 
+          show={showSuccessBanner} 
+          onDismiss={dismissSuccessBanner}
+        />
+        
         {/* Professional Top Bar */}
-        <header className="bg-card border-b border-border sticky top-0 z-10">
+        <header className={`bg-card border-b border-border sticky z-10 ${showSuccessBanner ? 'top-16' : 'top-0'} transition-all duration-300`}>
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <img 
@@ -61,13 +73,17 @@ const Index = () => {
                 alt="Swain AI Logo" 
                 className="w-12 h-12 object-contain"
               />
-              <h1 className="text-xl font-poppins font-bold text-foreground">Swain AI</h1>
+              <div className="flex items-center space-x-2">
+                <h1 className="text-xl font-poppins font-bold text-foreground">Swain AI</h1>
+                {isProUser && <ProBadge size="sm" />}
+              </div>
             </div>
             
             <div className="flex items-center space-x-3">
               <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Welcome,</span>
                 <span className="font-medium">{user?.email?.split('@')[0] || 'User'}</span>
+                {isProUser && <ProBadge size="sm" />}
               </div>
               <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
                 <span className="text-secondary-foreground font-medium text-sm">
@@ -93,8 +109,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background font-roboto">
+      {/* Success Banner */}
+      <SubscriptionBanner 
+        show={showSuccessBanner} 
+        onDismiss={dismissSuccessBanner}
+      />
+      
       {/* Professional Top Bar */}
-      <header className="bg-card border-b border-border sticky top-0 z-10">
+      <header className={`bg-card border-b border-border sticky z-10 ${showSuccessBanner ? 'top-16' : 'top-0'} transition-all duration-300`}>
           <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-full">
             <div className="flex items-center space-x-2 min-w-0 flex-1">
               <img 
@@ -102,7 +124,10 @@ const Index = () => {
                 alt="Swain AI Logo" 
                 className="w-12 h-12 object-contain flex-shrink-0"
               />
-              <h1 className="text-lg sm:text-xl font-poppins font-bold text-foreground truncate">Swain AI</h1>
+              <div className="flex items-center space-x-2">
+                <h1 className="text-lg sm:text-xl font-poppins font-bold text-foreground truncate">Swain AI</h1>
+                {isProUser && <ProBadge size="sm" />}
+              </div>
             </div>
             
             <div className="flex items-center space-x-2 flex-shrink-0">
@@ -127,6 +152,7 @@ const Index = () => {
               <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Welcome,</span>
                 <span className="font-medium max-w-[100px] truncate">{user?.email?.split('@')[0] || 'User'}</span>
+                {isProUser && <ProBadge size="sm" />}
               </div>
               <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-secondary-foreground font-medium text-sm">

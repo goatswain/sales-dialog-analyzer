@@ -8,8 +8,11 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import DailyCoaching from "./pages/DailyCoaching";
 import Pricing from "./pages/Pricing";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCanceled from "./pages/PaymentCanceled";
 import AuthGuard from "./components/AuthGuard";
 import Footer from "./components/Footer";
+import { SubscriptionProvider } from "./hooks/useSubscription";
 
 const queryClient = new QueryClient();
 
@@ -21,14 +24,18 @@ const App = () => (
       <BrowserRouter>
         <div className="flex flex-col min-h-screen">
           <AuthGuard>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/daily-coaching" element={<DailyCoaching />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/auth" element={<Auth />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <SubscriptionProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/daily-coaching" element={<DailyCoaching />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="/payment-canceled" element={<PaymentCanceled />} />
+                <Route path="/auth" element={<Auth />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </SubscriptionProvider>
           </AuthGuard>
           <Footer />
         </div>

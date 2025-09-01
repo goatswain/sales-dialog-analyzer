@@ -66,7 +66,11 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				'pro-gold': 'hsl(var(--pro-gold))',
+				'pro-gold-foreground': 'hsl(var(--pro-gold-foreground))',
+				'success-bg': 'hsl(var(--success-bg))',
+				'success-foreground': 'hsl(var(--success-foreground))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
