@@ -2,8 +2,52 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/AuthGuard';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 const Pricing = () => {
+  const { user, session } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleProPlanClick = async () => {
+    if (!user || !session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to upgrade to Pro plan.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        // Open Stripe checkout in a new tab
+        window.open(data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start checkout. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const freeFeatures = [
     'Access to all features',
     'Record conversations',
@@ -59,7 +103,7 @@ const Pricing = () => {
                 ))}
               </ul>
               <Button size="lg" variant="outline" className="w-full">
-                Get Started
+                Current Plan
               </Button>
             </CardContent>
           </Card>
@@ -90,8 +134,13 @@ const Pricing = () => {
                   </li>
                 ))}
               </ul>
-              <Button size="lg" className="w-full bg-primary hover:bg-primary/90">
-                Get Started
+              <Button 
+                size="lg" 
+                className="w-full bg-primary hover:bg-primary/90"
+                onClick={handleProPlanClick}
+                disabled={isLoading}
+              >
+                {isLoading ? "Loading..." : "Get Started"}
               </Button>
             </CardContent>
           </Card>
