@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, BarChart3 } from 'lucide-react';
 import AudioRecorder from '@/components/AudioRecorder';
 import RecordingsList from '@/components/RecordingsList';
 import TranscriptViewer from '@/components/TranscriptViewer';
@@ -106,6 +106,15 @@ const Index = () => {
             </div>
             
             <div className="flex items-center space-x-2 flex-shrink-0">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/daily-coaching')}
+                className="text-muted-foreground hover:text-foreground flex-shrink-0"
+              >
+                <BarChart3 className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Coaching</span>
+              </Button>
               <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Welcome,</span>
                 <span className="font-medium max-w-[100px] truncate">{user?.email?.split('@')[0] || 'User'}</span>
