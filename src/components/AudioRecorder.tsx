@@ -294,14 +294,22 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onUploadComplete }) => {
                   <div className="text-center space-y-4">
                     <div className="relative">
                       <Button 
-                        onClick={startRecording}
+                        onClick={(e) => {
+                          console.log('🔥 BUTTON CLICKED!', e);
+                          e.preventDefault();
+                          e.stopPropagation();
+                          startRecording();
+                        }}
+                        onTouchStart={(e) => {
+                          console.log('📱 TOUCH START!', e);
+                        }}
                         size="lg"
-                        className="rounded-full w-20 h-20 sm:w-24 sm:h-24 bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                        className="rounded-full w-20 h-20 sm:w-24 sm:h-24 bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 relative z-10"
                         disabled={isUploading}
                       >
                         <Mic className="w-6 h-6 sm:w-8 sm:h-8" />
                       </Button>
-                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse"></div>
+                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse pointer-events-none"></div>
                     </div>
                     <p className="text-sm text-muted-foreground font-roboto">Tap to record</p>
                   </div>
