@@ -57,9 +57,9 @@ const Index = () => {
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">SC</span>
+                <span className="text-primary-foreground font-bold text-sm">SA</span>
               </div>
-              <h1 className="text-xl font-poppins font-bold text-foreground">Sales Coach AI</h1>
+              <h1 className="text-xl font-poppins font-bold text-foreground">Swain AI</h1>
             </div>
             
             <div className="flex items-center space-x-3">
@@ -96,9 +96,9 @@ const Index = () => {
           <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-full">
             <div className="flex items-center space-x-2 min-w-0 flex-1">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-primary-foreground font-bold text-sm">SC</span>
+                <span className="text-primary-foreground font-bold text-sm">SA</span>
               </div>
-              <h1 className="text-lg sm:text-xl font-poppins font-bold text-foreground truncate">Sales Coach AI</h1>
+              <h1 className="text-lg sm:text-xl font-poppins font-bold text-foreground truncate">Swain AI</h1>
             </div>
             
             <div className="flex items-center space-x-2 flex-shrink-0">
