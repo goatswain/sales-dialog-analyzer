@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AudioRecorder from '@/components/AudioRecorder';
-import RecordingsList from '@/components/RecordingsList';
+import { useNavigate, useLocation } from 'react-router-dom';
+import RecordButton from '@/components/RecordButton';
+import UploadButton from '@/components/UploadButton';
+import RecentCalls from '@/components/RecentCalls';
 import TranscriptViewer from '@/components/TranscriptViewer';
 import SubscriptionBanner from '@/components/SubscriptionBanner';
-import Header from '@/components/Header';
+import TopBar from '@/components/TopBar';
+import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/components/AuthGuard';
 import { useSubscription } from '@/hooks/useSubscription';
 
@@ -12,6 +14,7 @@ const Index = () => {
   const { user, session, loading, signOut } = useAuth();
   const { subscriptionData, showSuccessBanner, dismissSuccessBanner } = useSubscription();
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentView, setCurrentView] = useState<'home' | 'transcript'>('home');
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -23,6 +26,14 @@ const Index = () => {
       navigate('/auth');
     }
   }, [session, loading, navigate]);
+
+  // Check if we should show transcript view from navigation
+  useEffect(() => {
+    if (location.state?.recordingId) {
+      setSelectedRecordingId(location.state.recordingId);
+      setCurrentView('transcript');
+    }
+  }, [location.state]);
 
   const handleUploadComplete = (recordingId: string) => {
     setRefreshTrigger(prev => prev + 1);
@@ -55,7 +66,7 @@ const Index = () => {
 
   if (currentView === 'transcript' && selectedRecordingId) {
     return (
-      <div className="min-h-screen bg-background font-roboto">
+      <div className="min-h-screen bg-background font-roboto pb-16">
         {/* Success Banner */}
         <SubscriptionBanner 
           show={showSuccessBanner} 
@@ -63,7 +74,7 @@ const Index = () => {
         />
         
         <div className={showSuccessBanner ? 'pt-16' : ''}>
-          <Header isProUser={isProUser} />
+          <TopBar isProUser={isProUser} />
         </div>
         
         <div className="container mx-auto p-6 max-w-7xl">
@@ -72,12 +83,13 @@ const Index = () => {
             onBack={handleBackToHome}
           />
         </div>
+        <BottomNavigation />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background font-roboto">
+    <div className="min-h-screen bg-background font-roboto pb-16">
       {/* Success Banner */}
       <SubscriptionBanner 
         show={showSuccessBanner} 
@@ -85,21 +97,28 @@ const Index = () => {
       />
       
       <div className={showSuccessBanner ? 'pt-16' : ''}>
-        <Header isProUser={isProUser} />
+        <TopBar isProUser={isProUser} />
       </div>
 
-      <div className="container mx-auto p-4 sm:p-6 max-w-4xl">
-        <div className="space-y-6">
-          {/* Audio Recorder */}
-          <AudioRecorder onUploadComplete={handleUploadComplete} />
-
-          {/* Recordings List */}
-          <RecordingsList 
-            onSelectRecording={handleSelectRecording}
-            refreshTrigger={refreshTrigger}
-          />
+      <div className="container mx-auto p-4 max-w-2xl space-y-8">
+        {/* Main Record Button */}
+        <div className="text-center py-8">
+          <RecordButton onUploadComplete={handleUploadComplete} />
         </div>
+
+        {/* Upload Button */}
+        <div className="flex justify-center">
+          <UploadButton onUploadComplete={handleUploadComplete} />
+        </div>
+
+        {/* Recent Calls */}
+        <RecentCalls 
+          onSelectRecording={handleSelectRecording}
+          refreshTrigger={refreshTrigger}
+        />
       </div>
+
+      <BottomNavigation />
     </div>
   );
 };

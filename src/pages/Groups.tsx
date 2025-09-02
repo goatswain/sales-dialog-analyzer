@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Users, Crown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
+import TopBar from '@/components/TopBar';
+import BottomNavigation from '@/components/BottomNavigation';
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface Group {
@@ -168,15 +169,15 @@ const Groups = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background font-roboto">
-      <Header isProUser={isProUser} />
+    <div className="min-h-screen bg-background font-roboto pb-16">
+      <TopBar isProUser={isProUser} />
       
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-8">
+      <div className="container mx-auto p-4 max-w-2xl">
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Team Groups</h1>
-            <p className="text-muted-foreground mt-2">
-              Collaborate with your team by sharing recordings and insights
+            <h1 className="text-2xl font-bold text-foreground">Groups</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Collaborate with your team
             </p>
           </div>
         
@@ -222,55 +223,55 @@ const Groups = () => {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {groups.map((group) => (
-          <Card 
-            key={group.id} 
-            className="hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => navigate(`/groups/${group.id}`)}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">
-                {group.name}
-              </CardTitle>
-              {group.user_role === 'creator' && (
-                <Crown className="h-4 w-4 text-primary" />
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  {group.member_count} members
+        <div className="space-y-3">
+          {groups.map((group) => (
+            <Card 
+              key={group.id} 
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate(`/groups/${group.id}`)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-foreground">{group.name}</h3>
+                  {group.user_role === 'creator' && (
+                    <Crown className="h-4 w-4 text-primary" />
+                  )}
                 </div>
-                <Badge variant="secondary">
-                  {group.user_role}
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Created {new Date(group.created_at).toLocaleDateString()}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    {group.member_count} members
+                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    {group.user_role}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Created {new Date(group.created_at).toLocaleDateString()}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {groups.length === 0 && (
+          <div className="text-center py-12">
+            <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              No groups yet
+            </h3>
+            <p className="text-muted-foreground mb-4 text-sm">
+              Create your first team group to start collaborating
+            </p>
+            <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create Your First Group
+            </Button>
+          </div>
+        )}
       </div>
 
-      {groups.length === 0 && (
-        <div className="text-center py-12">
-          <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            No groups yet
-          </h3>
-          <p className="text-muted-foreground mb-4">
-            Create your first team group to start collaborating with your colleagues
-          </p>
-          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create Your First Group
-          </Button>
-        </div>
-      )}
-    </div>
+      <BottomNavigation />
     </div>
   );
 };

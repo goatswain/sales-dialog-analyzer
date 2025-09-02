@@ -21,7 +21,8 @@ import {
   Clock
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import Header from '@/components/Header';
+import TopBar from '@/components/TopBar';
+import BottomNavigation from '@/components/BottomNavigation';
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface Group {
@@ -326,10 +327,10 @@ const GroupChat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background font-roboto">
-      <Header isProUser={isProUser} />
+    <div className="min-h-screen bg-background pb-16">
+      <TopBar isProUser={isProUser} />
       
-      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="container mx-auto p-4 max-w-2xl">
         {/* Group Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -343,7 +344,7 @@ const GroupChat = () => {
               Back
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{group?.name}</h1>
+              <h1 className="text-xl font-bold text-foreground">{group?.name}</h1>
               <p className="text-sm text-muted-foreground">
                 {members.length} members
               </p>
@@ -397,13 +398,13 @@ const GroupChat = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Members Sidebar */}
-        <Card className="lg:col-span-1">
+        <div className="space-y-6">
+        {/* Members */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
               <Users className="h-4 w-4" />
-              Members
+              Members ({members.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -428,93 +429,93 @@ const GroupChat = () => {
         </Card>
 
         {/* Chat Area */}
-        <div className="lg:col-span-3">
-          <Card className="h-[600px] flex flex-col">
-            {/* Messages */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-4">
-              {messages.map((message) => (
+        <Card className="h-[500px] flex flex-col">
+          {/* Messages */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
+              >
                 <div
-                  key={message.id}
-                  className={`flex ${message.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                  className={`max-w-[80%] ${
+                    message.user_id === user?.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                  } rounded-lg p-3`}
                 >
-                  <div
-                    className={`max-w-[70%] ${
-                      message.user_id === user?.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    } rounded-lg p-3`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs opacity-75">
-                        {message.profiles.email.split('@')[0]}
-                      </span>
-                      <span className="text-xs opacity-50">
-                        {new Date(message.created_at).toLocaleTimeString()}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs opacity-75">
+                      {message.profiles.email.split('@')[0]}
+                    </span>
+                    <span className="text-xs opacity-50">
+                      {new Date(message.created_at).toLocaleTimeString()}
+                    </span>
+                  </div>
 
-                    {message.message_type === 'text' && (
-                      <p className="text-sm">{message.content}</p>
-                    )}
+                  {message.message_type === 'text' && (
+                    <p className="text-sm">{message.content}</p>
+                  )}
 
-                    {message.message_type === 'recording' && message.recordings && (
-                      <div className="bg-background/10 rounded p-2 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Mic className="h-4 w-4" />
-                          <span className="text-sm font-medium">
-                            {message.recordings.title || 'Audio Recording'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => toggleAudio(message.recordings!.audio_url, message.id)}
-                            className="h-8 w-8 p-0"
-                          >
-                            {playingAudio === message.id ? (
-                              <Pause className="h-4 w-4" />
-                            ) : (
-                              <Play className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <div className="flex items-center gap-1 text-xs opacity-75">
-                            <Clock className="h-3 w-3" />
-                            {Math.floor(message.recordings.duration_seconds / 60)}:
-                            {(message.recordings.duration_seconds % 60).toString().padStart(2, '0')}
-                          </div>
+                  {message.message_type === 'recording' && message.recordings && (
+                    <div className="bg-background/10 rounded p-2 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Mic className="h-4 w-4" />
+                        <span className="text-sm font-medium">
+                          {message.recordings.title || 'Audio Recording'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => toggleAudio(message.recordings!.audio_url, message.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {playingAudio === message.id ? (
+                            <Pause className="h-4 w-4" />
+                          ) : (
+                            <Play className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <div className="flex items-center gap-1 text-xs opacity-75">
+                          <Clock className="h-3 w-3" />
+                          {Math.floor(message.recordings.duration_seconds / 60)}:
+                          {(message.recordings.duration_seconds % 60).toString().padStart(2, '0')}
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Message Input */}
-            <div className="border-t p-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Type your message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={sendMessage}
-                  disabled={!newMessage.trim() || sending}
-                  size="icon"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
               </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Message Input */}
+          <div className="border-t p-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Type your message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                className="flex-1"
+              />
+              <Button
+                onClick={sendMessage}
+                disabled={!newMessage.trim() || sending}
+                size="icon"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
         </div>
       </div>
+      
+      <BottomNavigation />
     </div>
   );
 };
