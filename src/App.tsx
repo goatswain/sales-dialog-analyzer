@@ -8,7 +8,7 @@ import { ProfileGuard } from "./components/ProfileGuard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import DailyCoaching from "./pages/DailyCoaching";
+import SwainCoaching from '@/pages/SwainCoaching';
 import Pricing from "./pages/Pricing";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
@@ -38,7 +38,7 @@ const App = () => (
                   <Route path="/groups" element={<Groups />} />
                   <Route path="/groups/:groupId" element={<GroupChat />} />
                   <Route path="/profile" element={<Profile />} />
-                  <Route path="/daily-coaching" element={<DailyCoaching />} />
+                  <Route path="/swain-coaching" element={<SwainCoaching />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/payment-success" element={<PaymentSuccess />} />
                   <Route path="/payment-canceled" element={<PaymentCanceled />} />
