@@ -99,6 +99,14 @@ const Groups = () => {
         throw new Error('No valid session found');
       }
 
+      // Test auth context
+      try {
+        const { data: authTest } = await supabase.rpc('test_auth_context');
+        console.log('Auth context test:', authTest);
+      } catch (error) {
+        console.error('Auth context test failed:', error);
+      }
+
       // Create group
       const { data: group, error: groupError } = await supabase
         .from('groups')
