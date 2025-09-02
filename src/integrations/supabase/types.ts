@@ -127,29 +127,38 @@ export type Database = {
       }
       group_messages: {
         Row: {
+          audio_url: string | null
           content: string | null
           created_at: string
+          duration_seconds: number | null
           group_id: string
           id: string
           message_type: string
+          parent_message_id: string | null
           recording_id: string | null
           user_id: string
         }
         Insert: {
+          audio_url?: string | null
           content?: string | null
           created_at?: string
+          duration_seconds?: number | null
           group_id: string
           id?: string
           message_type?: string
+          parent_message_id?: string | null
           recording_id?: string | null
           user_id: string
         }
         Update: {
+          audio_url?: string | null
           content?: string | null
           created_at?: string
+          duration_seconds?: number | null
           group_id?: string
           id?: string
           message_type?: string
+          parent_message_id?: string | null
           recording_id?: string | null
           user_id?: string
         }
@@ -159,6 +168,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "group_messages"
             referencedColumns: ["id"]
           },
           {
@@ -175,6 +191,7 @@ export type Database = {
           created_at: string
           creator_id: string
           id: string
+          last_activity_at: string | null
           name: string
           updated_at: string
         }
@@ -182,6 +199,7 @@ export type Database = {
           created_at?: string
           creator_id: string
           id?: string
+          last_activity_at?: string | null
           name: string
           updated_at?: string
         }
@@ -189,6 +207,7 @@ export type Database = {
           created_at?: string
           creator_id?: string
           id?: string
+          last_activity_at?: string | null
           name?: string
           updated_at?: string
         }
@@ -197,6 +216,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          display_name: string | null
           email: string | null
           id: string
           updated_at: string
@@ -204,6 +224,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           email?: string | null
           id?: string
           updated_at?: string
@@ -211,6 +232,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           email?: string | null
           id?: string
           updated_at?: string

@@ -3,13 +3,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Clock, FileAudio, Loader2, AlertCircle, Edit2, Check, X, Trash2, Search } from 'lucide-react';
+import { Clock, FileAudio, Loader2, AlertCircle, Edit2, Check, X, Trash2, Search, MoreVertical, Play, FileText, Share } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import TopBar from '@/components/TopBar';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useToast } from '@/hooks/use-toast';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import SendToGroupDrawer from '@/components/SendToGroupDrawer';
 
 interface Recording {
   id: string;
@@ -18,6 +20,7 @@ interface Recording {
   duration_seconds?: number;
   status: 'uploaded' | 'transcribing' | 'completed' | 'error';
   error_message?: string;
+  audio_url?: string;
   transcripts?: Array<{
     text: string;
   }>;
@@ -34,6 +37,8 @@ const Calls = () => {
   const [editTitle, setEditTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [shareDrawerOpen, setShareDrawerOpen] = useState(false);
+  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
 
   const isProUser = subscriptionData?.subscribed || false;
 
@@ -48,6 +53,7 @@ const Calls = () => {
           duration_seconds,
           status,
           error_message,
+          audio_url,
           transcripts(text)
         `)
         .order('created_at', { ascending: false });
@@ -259,6 +265,11 @@ const Calls = () => {
     }
   };
 
+  const handleSendToGroup = (recording: Recording) => {
+    setSelectedRecording(recording);
+    setShareDrawerOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-16">
@@ -383,33 +394,63 @@ const Calls = () => {
                                   {getScore()}%
                                 </Badge>
                               )}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  startEditing(recording);
-                                }}
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteRecording(recording.id);
-                                }}
-                                disabled={deleting === recording.id}
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                              >
-                                {deleting === recording.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="w-4 h-4" />
-                                )}
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (recording.status === 'completed') {
+                                        navigate('/', { state: { recordingId: recording.id } });
+                                      }
+                                    }}
+                                    disabled={recording.status !== 'completed'}
+                                  >
+                                    <Play className="w-4 h-4 mr-2" />
+                                    Play
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (recording.status === 'completed') {
+                                        navigate('/', { state: { recordingId: recording.id } });
+                                      }
+                                    }}
+                                    disabled={recording.status !== 'completed'}
+                                  >
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    View Transcript
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startEditing(recording);
+                                    }}
+                                  >
+                                    <Edit2 className="w-4 h-4 mr-2" />
+                                    Rename
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSendToGroup(recording);
+                                    }}
+                                    disabled={!recording.audio_url || recording.status !== 'completed'}
+                                  >
+                                    <Share className="w-4 h-4 mr-2" />
+                                    Send to Group
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                         )}
@@ -456,6 +497,12 @@ const Calls = () => {
           </div>
         )}
       </div>
+
+      <SendToGroupDrawer
+        open={shareDrawerOpen}
+        onOpenChange={setShareDrawerOpen}
+        recording={selectedRecording}
+      />
 
       <BottomNavigation />
     </div>

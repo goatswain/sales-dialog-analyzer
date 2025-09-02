@@ -37,6 +37,7 @@ interface Member {
   role: string;
   profiles: {
     email: string;
+    display_name?: string;
   };
 }
 
@@ -47,8 +48,11 @@ interface Message {
   content: string;
   created_at: string;
   recording_id: string | null;
+  audio_url?: string;
+  duration_seconds?: number;
   profiles: {
     email: string;
+    display_name?: string;
   };
   recordings?: {
     title: string;
@@ -134,20 +138,23 @@ const GroupChat = () => {
       if (membersError) throw membersError;
 
       // Get profile information for each member
-      const membersWithProfiles = await Promise.all(
-        membersData.map(async (member) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('user_id', member.user_id)
-            .single();
+        const membersWithProfiles = await Promise.all(
+          membersData.map(async (member) => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('email, display_name')
+              .eq('user_id', member.user_id)
+              .single();
 
-          return {
-            ...member,
-            profiles: { email: profile?.email || 'Unknown' }
-          };
-        })
-      );
+            return {
+              ...member,
+              profiles: { 
+                email: profile?.email || 'Unknown',
+                display_name: profile?.display_name
+              }
+            };
+          })
+        );
 
       setMembers(membersWithProfiles);
 
@@ -174,7 +181,9 @@ const GroupChat = () => {
           message_type,
           content,
           created_at,
-          recording_id
+          recording_id,
+          audio_url,
+          duration_seconds
         `)
         .eq('group_id', groupId)
         .order('created_at', { ascending: true });
@@ -187,7 +196,7 @@ const GroupChat = () => {
           const [profileResult, recordingResult] = await Promise.all([
             supabase
               .from('profiles')
-              .select('email')
+              .select('email, display_name')
               .eq('user_id', message.user_id)
               .single(),
             message.recording_id
@@ -201,7 +210,10 @@ const GroupChat = () => {
 
           return {
             ...message,
-            profiles: { email: profileResult.data?.email || 'Unknown' },
+            profiles: { 
+              email: profileResult.data?.email || 'Unknown',
+              display_name: profileResult.data?.display_name
+            },
             recordings: recordingResult.data
           };
         })
@@ -417,7 +429,7 @@ const GroupChat = () => {
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm text-foreground">
-                    {member.profiles.email.split('@')[0]}
+                    {member.profiles.display_name || member.profiles.email.split('@')[0]}
                   </span>
                 </div>
                 <Badge variant={member.role === 'creator' ? 'default' : 'secondary'} className="text-xs">
@@ -446,7 +458,7 @@ const GroupChat = () => {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs opacity-75">
-                      {message.profiles.email.split('@')[0]}
+                      {message.profiles.display_name || message.profiles.email.split('@')[0]}
                     </span>
                     <span className="text-xs opacity-50">
                       {new Date(message.created_at).toLocaleTimeString()}
@@ -455,6 +467,41 @@ const GroupChat = () => {
 
                   {message.message_type === 'text' && (
                     <p className="text-sm">{message.content}</p>
+                  )}
+
+                  {message.message_type === 'recording_share' && (
+                    <div className="bg-background/10 rounded p-2 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Mic className="h-4 w-4" />
+                        <span className="text-sm font-medium">
+                          Shared recording
+                        </span>
+                      </div>
+                      <p className="text-xs opacity-75">{message.content}</p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => toggleAudio(message.audio_url!, message.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {playingAudio === message.id ? (
+                            <Pause className="h-4 w-4" />
+                          ) : (
+                            <Play className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <div className="flex items-center gap-1 text-xs opacity-75">
+                          <Clock className="h-3 w-3" />
+                          {message.duration_seconds && (
+                            <>
+                              {Math.floor(message.duration_seconds / 60)}:
+                              {(message.duration_seconds % 60).toString().padStart(2, '0')}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   )}
 
                   {message.message_type === 'recording' && message.recordings && (
