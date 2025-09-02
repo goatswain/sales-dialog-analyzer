@@ -10,7 +10,25 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.check-api-key-v2]
-verify_jwt = false
+verify_jwt = true
 
 [functions.test-api-key]
-verify_jwt = false
+verify_jwt = true
+
+[functions.check-subscription]
+verify_jwt = true
+
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.customer-portal]
+verify_jwt = true
+
+[functions.send-group-invitation]
+verify_jwt = true
+
+[functions.accept-group-invitation]
+verify_jwt = true
+
+[functions.send-pro-welcome-email]
+verify_jwt = true
