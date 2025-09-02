@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { LogOut, User, BarChart3, CreditCard, Users } from 'lucide-react';
 import AudioRecorder from '@/components/AudioRecorder';
 import RecordingsList from '@/components/RecordingsList';
 import TranscriptViewer from '@/components/TranscriptViewer';
 import SubscriptionBanner from '@/components/SubscriptionBanner';
-import ProBadge from '@/components/ProBadge';
+import Header from '@/components/Header';
 import { useAuth } from '@/components/AuthGuard';
 import { useSubscription } from '@/hooks/useSubscription';
 
@@ -64,38 +62,9 @@ const Index = () => {
           onDismiss={dismissSuccessBanner}
         />
         
-        {/* Professional Top Bar */}
-        <header className={`bg-card border-b border-border sticky z-10 ${showSuccessBanner ? 'top-16' : 'top-0'} transition-all duration-300`}>
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <img 
-                src="/lovable-uploads/0661e838-ae1b-4b7a-ba8d-98e91f080271.png" 
-                alt="Swain AI Logo" 
-                className="w-12 h-12 object-contain"
-              />
-              <div className="flex items-center space-x-2">
-                <h1 className="text-xl font-poppins font-bold text-foreground">Swain AI</h1>
-                {isProUser && <ProBadge size="sm" />}
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
-                <span>Welcome,</span>
-                <span className="font-medium">{user?.email?.split('@')[0] || 'User'}</span>
-                {isProUser && <ProBadge size="sm" />}
-              </div>
-              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
-                <span className="text-secondary-foreground font-medium text-sm">
-                  {(user?.email?.[0] || 'U').toUpperCase()}
-                </span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </header>
+        <div className={showSuccessBanner ? 'pt-16' : ''}>
+          <Header isProUser={isProUser} />
+        </div>
         
         <div className="container mx-auto p-6 max-w-7xl">
           <TranscriptViewer 
@@ -115,78 +84,22 @@ const Index = () => {
         onDismiss={dismissSuccessBanner}
       />
       
-      {/* Professional Top Bar */}
-      <header className={`bg-card border-b border-border sticky z-10 ${showSuccessBanner ? 'top-16' : 'top-0'} transition-all duration-300`}>
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-full">
-            <div className="flex items-center space-x-2 min-w-0 flex-1">
-              <img 
-                src="/lovable-uploads/0661e838-ae1b-4b7a-ba8d-98e91f080271.png" 
-                alt="Swain AI Logo" 
-                className="w-12 h-12 object-contain flex-shrink-0"
-              />
-              <div className="flex items-center space-x-2">
-                <h1 className="text-lg sm:text-xl font-poppins font-bold text-foreground truncate">Swain AI</h1>
-                {isProUser && <ProBadge size="sm" />}
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate('/groups')}
-                className="text-muted-foreground hover:text-foreground flex-shrink-0"
-              >
-                <Users className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Groups</span>
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate('/daily-coaching')}
-                className="text-muted-foreground hover:text-foreground flex-shrink-0"
-              >
-                <BarChart3 className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Coaching</span>
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate('/pricing')}
-                className="text-muted-foreground hover:text-foreground flex-shrink-0"
-              >
-                <CreditCard className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Pricing</span>
-              </Button>
-              <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
-                <span>Welcome,</span>
-                <span className="font-medium max-w-[100px] truncate">{user?.email?.split('@')[0] || 'User'}</span>
-                {isProUser && <ProBadge size="sm" />}
-              </div>
-              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-secondary-foreground font-medium text-sm">
-                  {(user?.email?.[0] || 'U').toUpperCase()}
-                </span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground flex-shrink-0">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-      </header>
+      <div className={showSuccessBanner ? 'pt-16' : ''}>
+        <Header isProUser={isProUser} />
+      </div>
 
-        <div className="container mx-auto p-4 sm:p-6 max-w-4xl">
-          <div className="space-y-6">
-            {/* Audio Recorder */}
-            <AudioRecorder onUploadComplete={handleUploadComplete} />
+      <div className="container mx-auto p-4 sm:p-6 max-w-4xl">
+        <div className="space-y-6">
+          {/* Audio Recorder */}
+          <AudioRecorder onUploadComplete={handleUploadComplete} />
 
-            {/* Recordings List */}
-            <RecordingsList 
-              onSelectRecording={handleSelectRecording}
-              refreshTrigger={refreshTrigger}
-            />
-          </div>
+          {/* Recordings List */}
+          <RecordingsList 
+            onSelectRecording={handleSelectRecording}
+            refreshTrigger={refreshTrigger}
+          />
         </div>
+      </div>
     </div>
   );
 };

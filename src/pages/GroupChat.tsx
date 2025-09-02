@@ -21,6 +21,8 @@ import {
   Clock
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import Header from '@/components/Header';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface Group {
   id: string;
@@ -57,19 +59,21 @@ interface Message {
 const GroupChat = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const { user } = useAuth();
+  const { subscriptionData } = useSubscription();
   const navigate = useNavigate();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const isProUser = subscriptionData?.subscribed || false;
 
   useEffect(() => {
     if (groupId && user) {
@@ -322,29 +326,32 @@ const GroupChat = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/groups')}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{group?.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {members.length} members
-            </p>
+    <div className="min-h-screen bg-background font-roboto">
+      <Header isProUser={isProUser} />
+      
+      <div className="container mx-auto p-6 max-w-4xl">
+        {/* Group Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/groups')}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">{group?.name}</h1>
+              <p className="text-sm text-muted-foreground">
+                {members.length} members
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex gap-2">
-          <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+          <div className="flex gap-2">
+            <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -387,10 +394,10 @@ const GroupChat = () => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Members Sidebar */}
         <Card className="lg:col-span-1">
           <CardHeader>
@@ -505,6 +512,7 @@ const GroupChat = () => {
               </div>
             </div>
           </Card>
+        </div>
         </div>
       </div>
     </div>

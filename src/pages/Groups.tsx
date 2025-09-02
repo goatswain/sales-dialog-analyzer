@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Users, Crown, Mail } from 'lucide-react';
+import { Plus, Users, Crown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import Header from '@/components/Header';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface Group {
   id: string;
@@ -21,12 +23,15 @@ interface Group {
 
 const Groups = () => {
   const { user } = useAuth();
+  const { subscriptionData } = useSubscription();
   const navigate = useNavigate();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [creating, setCreating] = useState(false);
+
+  const isProUser = subscriptionData?.subscribed || false;
 
   useEffect(() => {
     if (user) {
@@ -163,14 +168,17 @@ const Groups = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Team Groups</h1>
-          <p className="text-muted-foreground mt-2">
-            Collaborate with your team by sharing recordings and insights
-          </p>
-        </div>
+    <div className="min-h-screen bg-background font-roboto">
+      <Header isProUser={isProUser} />
+      
+      <div className="container mx-auto p-6">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Team Groups</h1>
+            <p className="text-muted-foreground mt-2">
+              Collaborate with your team by sharing recordings and insights
+            </p>
+          </div>
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -262,6 +270,7 @@ const Groups = () => {
           </Button>
         </div>
       )}
+    </div>
     </div>
   );
 };
