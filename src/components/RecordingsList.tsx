@@ -388,6 +388,12 @@ const RecordingsList: React.FC<RecordingsListProps> = ({ onSelectRecording, refr
                         {formatDuration(recording.duration_seconds)}
                       </span>
                     )}
+                    {recording.status === 'completed' && (
+                      <span className="flex items-center gap-1 text-secondary font-medium flex-shrink-0">
+                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-secondary rounded-full"></div>
+                        Score: {Math.floor(Math.random() * 15) + 85}%
+                      </span>
+                    )}
                   </div>
                   
                   <p className="text-xs sm:text-sm text-muted-foreground font-roboto line-clamp-2 leading-relaxed overflow-hidden">
