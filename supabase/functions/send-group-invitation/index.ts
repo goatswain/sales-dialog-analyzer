@@ -74,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
     const inviteUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '')}/functions/v1/accept-group-invitation?token=${invitationToken}`;
     
     const { error: emailError } = await resend.emails.send({
-      from: 'SwainAI <onboarding@resend.dev>',
+      from: 'SwainAI <noreply@swainai.com>',
       to: [email],
       subject: `You're invited to join "${groupName}" on SwainAI`,
       html: `
