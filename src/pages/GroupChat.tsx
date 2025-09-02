@@ -190,7 +190,7 @@ const GroupChat = () => {
           recording_id,
           audio_url,
           duration_seconds,
-          profiles!group_messages_user_id_fkey (
+          profiles (
             display_name,
             email,
             avatar_url
@@ -240,6 +240,12 @@ const GroupChat = () => {
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
+    console.log('Attempting to send message:', {
+      groupId,
+      userId: user?.id,
+      messageContent: newMessage.trim()
+    });
+
     setSending(true);
     try {
       const { error } = await supabase
@@ -251,8 +257,12 @@ const GroupChat = () => {
           content: newMessage.trim()
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Message insert error:', error);
+        throw error;
+      }
 
+      console.log('Message sent successfully');
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
