@@ -28,7 +28,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.accept-group-invitation]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-pro-welcome-email]
 verify_jwt = true
