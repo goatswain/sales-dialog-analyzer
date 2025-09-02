@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +16,81 @@ const Auth = () => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  const inviteToken = searchParams.get('invite');
+  const groupName = searchParams.get('group');
+  const isInvitation = Boolean(inviteToken && groupName);
+
+  const acceptInvitation = async () => {
+    if (!inviteToken) return;
+    
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Update invitation as accepted
+      const { error: updateError } = await supabase
+        .from('group_invitations')
+        .update({ accepted_at: new Date().toISOString() })
+        .eq('token', inviteToken)
+        .eq('email', user.email);
+
+      if (updateError) {
+        console.error('Error accepting invitation:', updateError);
+        toast.error('Failed to accept invitation');
+        return;
+      }
+
+      // Get the group details
+      const { data: invitation } = await supabase
+        .from('group_invitations')
+        .select(`
+          group_id,
+          groups:group_id(id, name)
+        `)
+        .eq('token', inviteToken)
+        .single();
+
+      if (invitation?.group_id) {
+        // Add user to group
+        const { error: memberError } = await supabase
+          .from('group_members')
+          .insert({
+            group_id: invitation.group_id,
+            user_id: user.id,
+            role: 'member'
+          });
+
+        if (memberError && !memberError.message.includes('duplicate key')) {
+          console.error('Error adding to group:', memberError);
+          toast.error('Failed to join group');
+          return;
+        }
+
+        toast.success(`Successfully joined "${groupName}"!`);
+        navigate(`/groups/${invitation.group_id}`);
+      }
+    } catch (error) {
+      console.error('Error in acceptInvitation:', error);
+      toast.error('Failed to process invitation');
+    }
+  };
+
+  useEffect(() => {
+    // Check if user is already authenticated and has an invitation
+    const checkAuthAndInvitation = async () => {
+      if (isInvitation) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await acceptInvitation();
+        }
+      }
+    };
+    
+    checkAuthAndInvitation();
+  }, [isInvitation]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +111,11 @@ const Auth = () => {
     if (error) {
       setError(error.message);
     } else {
-      setMessage('Check your email for the confirmation link!');
+      if (isInvitation) {
+        setMessage('Check your email for the confirmation link, then you\'ll automatically join the group!');
+      } else {
+        setMessage('Check your email for the confirmation link!');
+      }
     }
     
     setLoading(false);
@@ -55,7 +135,11 @@ const Auth = () => {
     if (error) {
       setError(error.message);
     } else {
-      navigate('/');
+      if (isInvitation) {
+        await acceptInvitation();
+      } else {
+        navigate('/');
+      }
     }
     
     setLoading(false);
@@ -65,10 +149,20 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Sales Recorder</CardTitle>
+          <CardTitle className="text-2xl">SwainAI</CardTitle>
           <CardDescription>
-            Sign in to access your private recordings
+            {isInvitation 
+              ? `You've been invited to join "${groupName}" - Sign in or create an account to continue`
+              : 'Sign in to access your private recordings'
+            }
           </CardDescription>
+          {isInvitation && (
+            <Alert className="mt-4">
+              <AlertDescription className="text-center">
+                🎉 Joining group: <strong>{groupName}</strong>
+              </AlertDescription>
+            </Alert>
+          )}
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="space-y-4">
