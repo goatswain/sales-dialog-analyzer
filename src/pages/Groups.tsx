@@ -42,27 +42,35 @@ const Groups = () => {
 
   const fetchGroups = async () => {
     try {
+      console.log('Starting fetchGroups with user:', user?.id);
+      
       // First get the user's group memberships
       const { data: membershipData, error: membershipError } = await supabase
         .from('group_members')
         .select('group_id, role')
         .eq('user_id', user?.id);
 
+      console.log('Membership query result:', { membershipData, membershipError });
+
       if (membershipError) throw membershipError;
 
       if (!membershipData || membershipData.length === 0) {
+        console.log('No memberships found, setting empty groups array');
         setGroups([]);
         return;
       }
 
       // Get the group IDs the user belongs to
       const groupIds = membershipData.map(m => m.group_id);
+      console.log('Group IDs found:', groupIds);
 
       // Get the group details for those IDs
       const { data: groupsData, error: groupsError } = await supabase
         .from('groups')
         .select('id, name, creator_id, created_at')
         .in('id', groupIds);
+
+      console.log('Groups query result:', { groupsData, groupsError });
 
       if (groupsError) throw groupsError;
 
@@ -88,6 +96,7 @@ const Groups = () => {
         })
       );
 
+      console.log('Final groups with counts:', groupsWithCounts);
       setGroups(groupsWithCounts);
     } catch (error) {
       console.error('Error fetching groups:', error);
