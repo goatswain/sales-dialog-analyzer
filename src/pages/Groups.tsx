@@ -143,18 +143,7 @@ const Groups = () => {
         throw new Error('No group returned from function');
       }
       
-      console.log('Now adding creator as member...');
-
-      // Add creator as member
-      const { error: memberError } = await supabase
-        .from('group_members')
-        .insert({
-          group_id: createdGroup.id,
-          user_id: user?.id,
-          role: 'creator'
-        });
-
-      if (memberError) throw memberError;
+      console.log('Group and member creation completed successfully');
 
       toast({
         title: 'Success',
