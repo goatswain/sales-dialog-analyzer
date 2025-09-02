@@ -336,6 +336,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_group_safe: {
+        Args: { creator_user_id: string; group_name: string }
+        Returns: {
+          created_at: string
+          creator_id: string
+          id: string
+          name: string
+          updated_at: string
+        }[]
+      }
       debug_auth_uid: {
         Args: Record<PropertyKey, never>
         Returns: string

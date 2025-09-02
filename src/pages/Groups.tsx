@@ -120,26 +120,36 @@ const Groups = () => {
         creator_id: user?.id
       });
 
-      // Create group with explicit headers
+      // Create group using the safe function that bypasses RLS issues
       const { data: group, error: groupError } = await supabase
-        .from('groups')
-        .insert({
-          name: newGroupName.trim(),
-          creator_id: user?.id
-        })
-        .select()
-        .single();
+        .rpc('create_group_safe', {
+          group_name: newGroupName.trim(),
+          creator_user_id: user?.id
+        });
 
-      console.log('Insert result:', { group, groupError });
-      console.log('Insert response type:', typeof group, typeof groupError);
+      console.log('Function result:', { group, groupError });
 
-      if (groupError) throw groupError;
+      if (groupError) {
+        console.error('Group creation failed:', groupError);
+        throw groupError;
+      }
+
+      console.log('Group created successfully:', group);
+      
+      // The function returns an array, so get the first item
+      const createdGroup = Array.isArray(group) ? group[0] : group;
+      
+      if (!createdGroup) {
+        throw new Error('No group returned from function');
+      }
+      
+      console.log('Now adding creator as member...');
 
       // Add creator as member
       const { error: memberError } = await supabase
         .from('group_members')
         .insert({
-          group_id: group.id,
+          group_id: createdGroup.id,
           user_id: user?.id,
           role: 'creator'
         });
