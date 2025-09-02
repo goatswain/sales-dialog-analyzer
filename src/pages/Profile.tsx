@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, LogOut, CreditCard, Settings, Crown } from 'lucide-react';
+import { User, LogOut, CreditCard, Settings, Crown, Mail } from 'lucide-react';
 import { useAuth } from '@/components/AuthGuard';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useNavigate } from 'react-router-dom';
@@ -136,6 +136,30 @@ const Profile = () => {
             <p className="text-xs text-muted-foreground mt-1">
               Version 2.0.0
             </p>
+          </CardContent>
+        </Card>
+
+        {/* Contact Us */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Contact Us
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Need help or have questions? We're here to assist you.
+              </p>
+              <a 
+                href="mailto:Swainaicontact@gmail.com" 
+                className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                Swainaicontact@gmail.com
+              </a>
+            </div>
           </CardContent>
         </Card>
       </div>
