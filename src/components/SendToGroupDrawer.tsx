@@ -122,6 +122,7 @@ const SendToGroupDrawer: React.FC<SendToGroupDrawerProps> = ({
           user_id: user.id,
           message_type: 'recording_share',
           content: `Shared recording: ${recording.title}`,
+          recording_id: recording.id,
           audio_url: recording.audio_url,
           duration_seconds: recording.duration_seconds
         });
