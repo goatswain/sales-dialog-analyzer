@@ -4,6 +4,7 @@ import { useAuth } from '@/components/AuthGuard';
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
 import { GroupAISummary } from "@/components/GroupAISummary"
+import MessageReactions from "@/components/MessageReactions"
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/UserAvatar';
 import { Input } from '@/components/ui/input';
@@ -583,7 +584,10 @@ const GroupChat = () => {
                   </div>
 
                   {message.message_type === 'text' && (
-                    <p className="text-sm">{message.content}</p>
+                    <>
+                      <p className="text-sm">{message.content}</p>
+                      <MessageReactions messageId={message.id} />
+                    </>
                   )}
 
                   {message.message_type === 'recording_share' && (
@@ -628,6 +632,7 @@ const GroupChat = () => {
                           autoGenerate={message.duration_seconds < 120}
                         />
                       )}
+                      <MessageReactions messageId={message.id} />
                     </div>
                   )}
 
@@ -668,6 +673,7 @@ const GroupChat = () => {
                           autoGenerate={message.recordings.duration_seconds < 120}
                         />
                       )}
+                      <MessageReactions messageId={message.id} />
                     </div>
                   )}
                 </div>

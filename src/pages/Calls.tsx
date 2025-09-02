@@ -168,7 +168,7 @@ const Calls = () => {
     return recording.status === 'completed' ? 'No transcript available' : 'Processing...';
   };
 
-  const getScore = () => Math.floor(Math.random() * 15) + 85;
+  
 
   const startEditing = (recording: Recording) => {
     setEditingId(recording.id);
@@ -389,11 +389,6 @@ const Calls = () => {
                               {recording.title || 'Sales Call'}
                             </h3>
                             <div className="flex items-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                              {recording.status === 'completed' && (
-                                <Badge variant="secondary" className="text-xs mr-2">
-                                  {getScore()}%
-                                </Badge>
-                              )}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
@@ -469,11 +464,6 @@ const Calls = () => {
                             <FileAudio className="w-4 h-4" />
                             {formatDuration(recording.duration_seconds)}
                           </span>
-                        )}
-                        {!editingId && recording.status === 'completed' && (
-                          <Badge variant="secondary" className="text-xs group-hover:hidden">
-                            {getScore()}%
-                          </Badge>
                         )}
                       </div>
                       

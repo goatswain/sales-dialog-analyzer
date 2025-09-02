@@ -115,7 +115,7 @@ const RecentCalls: React.FC<RecentCallsProps> = ({ onSelectRecording, refreshTri
     return recording.status === 'completed' ? 'No transcript available' : 'Processing...';
   };
 
-  const getScore = () => Math.floor(Math.random() * 15) + 85;
+  
 
   if (loading) {
     return (
@@ -176,11 +176,6 @@ const RecentCalls: React.FC<RecentCallsProps> = ({ onSelectRecording, refreshTri
                     <h3 className="font-medium text-sm text-foreground truncate">
                       {recording.title || 'Sales Call'}
                     </h3>
-                    {recording.status === 'completed' && (
-                      <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                        {getScore()}%
-                      </Badge>
-                    )}
                   </div>
                   
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
