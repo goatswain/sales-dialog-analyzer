@@ -336,6 +336,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_group_creator: {
+        Args: { group_id: string; user_id: string }
+        Returns: boolean
+      }
+      is_group_member: {
+        Args: { group_id: string; user_id: string }
+        Returns: boolean
+      }
       validate_audio_upload: {
         Args: { content_type: string; file_name: string; file_size: number }
         Returns: boolean
