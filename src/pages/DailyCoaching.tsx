@@ -205,7 +205,7 @@ const DailyCoaching = () => {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <img 
-              src="/swainai-logo.png" 
+              src="/lovable-uploads/4b956a83-9e3a-439f-bc16-98cefe4019ea.png" 
               alt="SwainAI Logo" 
               className="w-12 h-12 object-contain"
             />

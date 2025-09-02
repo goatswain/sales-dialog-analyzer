@@ -29,7 +29,7 @@ const Header: React.FC<HeaderProps> = ({ isProUser }) => {
         {/* Logo and Brand */}
         <div className="flex items-center space-x-3">
           <img 
-            src="/swainai-logo.png" 
+            src="/lovable-uploads/4b956a83-9e3a-439f-bc16-98cefe4019ea.png" 
             alt="SwainAI Logo" 
             className="w-10 h-10 object-contain"
           />

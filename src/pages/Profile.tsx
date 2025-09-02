@@ -325,7 +325,7 @@ const Profile = () => {
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
               <img 
-                src="/swainai-logo.png" 
+                src="/lovable-uploads/4b956a83-9e3a-439f-bc16-98cefe4019ea.png" 
                 alt="SwainAI Logo" 
                 className="w-6 h-6 object-contain"
               />
