@@ -42,36 +42,48 @@ const Groups = () => {
 
   const fetchGroups = async () => {
     try {
-      const { data, error } = await supabase
+      // First get the user's group memberships
+      const { data: membershipData, error: membershipError } = await supabase
         .from('group_members')
-        .select(`
-          role,
-          groups (
-            id,
-            name,
-            creator_id,
-            created_at
-          )
-        `)
+        .select('group_id, role')
         .eq('user_id', user?.id);
 
-      if (error) throw error;
+      if (membershipError) throw membershipError;
+
+      if (!membershipData || membershipData.length === 0) {
+        setGroups([]);
+        return;
+      }
+
+      // Get the group IDs the user belongs to
+      const groupIds = membershipData.map(m => m.group_id);
+
+      // Get the group details for those IDs
+      const { data: groupsData, error: groupsError } = await supabase
+        .from('groups')
+        .select('id, name, creator_id, created_at')
+        .in('id', groupIds);
+
+      if (groupsError) throw groupsError;
 
       // Get member counts for each group
       const groupsWithCounts = await Promise.all(
-        data.map(async (item) => {
+        groupsData.map(async (group) => {
           const { count } = await supabase
             .from('group_members')
             .select('*', { count: 'exact', head: true })
-            .eq('group_id', item.groups.id);
+            .eq('group_id', group.id);
+
+          // Find the user's role in this group
+          const userMembership = membershipData.find(m => m.group_id === group.id);
 
           return {
-            id: item.groups.id,
-            name: item.groups.name,
-            creator_id: item.groups.creator_id,
-            created_at: item.groups.created_at,
+            id: group.id,
+            name: group.name,
+            creator_id: group.creator_id,
+            created_at: group.created_at,
             member_count: count || 0,
-            user_role: item.role
+            user_role: userMembership?.role || 'member'
           };
         })
       );
