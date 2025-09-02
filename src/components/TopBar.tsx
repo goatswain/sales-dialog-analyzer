@@ -11,8 +11,8 @@ const TopBar: React.FC<TopBarProps> = ({ isProUser }) => {
       <div className="flex items-center justify-center h-14 px-4">
         <div className="flex items-center space-x-3">
           <img 
-            src="/swainai-logo.png" 
-            alt="SwainAI Logo" 
+            src="/lovable-uploads/0661e838-ae1b-4b7a-ba8d-98e91f080271.png" 
+            alt="Swain AI Logo" 
             className="w-12 h-12 object-contain"
           />
           <div className="flex items-center space-x-2">
