@@ -388,7 +388,7 @@ const Calls = () => {
                             <h3 className="font-medium text-base text-foreground truncate flex-1">
                               {recording.title || 'Sales Call'}
                             </h3>
-                            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               {recording.status === 'completed' && (
                                 <Badge variant="secondary" className="text-xs mr-2">
                                   {getScore()}%
