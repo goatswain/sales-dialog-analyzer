@@ -31,31 +31,46 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    let isMounted = true;
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state changed:', event, session);
+        if (!isMounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Redirect logic
+        // Redirect logic - only redirect on specific events to avoid loops
         if (event === 'SIGNED_IN' && session) {
-          navigate('/');
+          navigate('/', { replace: true });
         } else if (event === 'SIGNED_OUT') {
-          navigate('/auth');
+          navigate('/auth', { replace: true });
         }
       }
     );
 
-    // THEN check for existing session
+    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      
+      console.log('Initial session check:', session);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Initial redirect logic
+      if (!session && window.location.pathname !== '/auth') {
+        navigate('/auth', { replace: true });
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const signOut = async () => {
