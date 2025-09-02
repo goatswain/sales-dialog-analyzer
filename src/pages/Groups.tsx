@@ -96,10 +96,12 @@ const Groups = () => {
     try {
       console.log('Creating group with user ID:', user?.id);
       console.log('User object:', user);
+      console.log('Group name:', newGroupName.trim());
       
-      // First, let's verify the current session
+      // First, let's verify the current session  
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       console.log('Current session:', sessionData);
+      console.log('Session error:', sessionError);
       
       if (sessionError || !sessionData.session) {
         throw new Error('No valid session found');
@@ -113,7 +115,12 @@ const Groups = () => {
         console.error('Auth context test failed:', error);
       }
 
-      // Create group
+      console.log('About to insert with data:', {
+        name: newGroupName.trim(),
+        creator_id: user?.id
+      });
+
+      // Create group with explicit headers
       const { data: group, error: groupError } = await supabase
         .from('groups')
         .insert({
@@ -124,6 +131,7 @@ const Groups = () => {
         .single();
 
       console.log('Insert result:', { group, groupError });
+      console.log('Insert response type:', typeof group, typeof groupError);
 
       if (groupError) throw groupError;
 
