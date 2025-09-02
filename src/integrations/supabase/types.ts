@@ -348,6 +348,10 @@ export type Database = {
         Args: { group_id: string; user_id: string }
         Returns: boolean
       }
+      test_auth_context: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       validate_audio_upload: {
         Args: { content_type: string; file_name: string; file_size: number }
         Returns: boolean
