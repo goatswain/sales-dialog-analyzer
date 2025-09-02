@@ -1,20 +1,152 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { User, LogOut, CreditCard, Settings, Crown, Mail } from 'lucide-react';
+import { User, Camera, Mail, Calendar, Crown, LogOut, CreditCard, Settings } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthGuard';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { UserAvatar } from '@/components/UserAvatar';
 import TopBar from '@/components/TopBar';
 import BottomNavigation from '@/components/BottomNavigation';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
   const { subscriptionData } = useSubscription();
+  const { toast } = useToast();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [profile, setProfile] = useState({
+    display_name: '',
+    email: '',
+    avatar_url: null as string | null,
+    created_at: ''
+  });
 
   const isProUser = subscriptionData?.subscribed || false;
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setProfile({
+          display_name: data.display_name || '',
+          email: data.email || user?.email || '',
+          avatar_url: data.avatar_url,
+          created_at: data.created_at
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching profile:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load profile',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('You must select an image to upload.');
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user?.id}/avatar.${fileExt}`;
+
+      // Upload the file
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get the public URL
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      setProfile(prev => ({ ...prev, avatar_url: data.publicUrl }));
+      
+      toast({
+        title: 'Success',
+        description: 'Avatar uploaded successfully!',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const updateProfile = async () => {
+    if (!profile.display_name.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Display name is required',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          display_name: profile.display_name.trim(),
+          avatar_url: profile.avatar_url
+        })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Profile updated successfully!'
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -25,6 +157,17 @@ const Profile = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-16">
       <TopBar isProUser={isProUser} />
@@ -32,50 +175,108 @@ const Profile = () => {
       <div className="container mx-auto p-4 max-w-2xl space-y-6">
         <h1 className="text-2xl font-bold text-foreground">Profile</h1>
 
-        {/* User Info Card */}
+        {/* Profile Information Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">
-                  {(user?.email?.[0] || 'U').toUpperCase()}
-                </span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-foreground">
-                  {user?.email?.split('@')[0] || 'User'}
-                </h3>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
-              </div>
-              {isProUser && (
-                <Badge variant="secondary" className="bg-pro-gold text-pro-gold-foreground">
-                  <Crown className="w-3 h-3 mr-1" />
-                  Pro
-                </Badge>
-              )}
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Profile Settings
             </CardTitle>
+            <CardDescription>
+              Manage your personal information and preferences
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+          <CardContent className="space-y-6">
+            {/* Avatar Section */}
+            <div className="flex flex-col items-center space-y-4">
+              <UserAvatar
+                avatarUrl={profile.avatar_url}
+                displayName={profile.display_name}
+                email={profile.email}
+                size="lg"
+              />
+              
+              <div className="flex flex-col items-center space-y-2">
+                <Label htmlFor="avatar-upload" className="cursor-pointer">
+                  <div className="flex items-center gap-2 text-sm text-primary hover:underline">
+                    <Camera className="h-4 w-4" />
+                    {profile.avatar_url ? 'Change photo' : 'Add photo'}
+                  </div>
+                </Label>
+                <Input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={uploadAvatar}
+                  disabled={uploading}
+                  className="hidden"
+                />
+                {uploading && (
+                  <div className="text-xs text-muted-foreground">Uploading...</div>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Profile Information */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="displayName">Full Name</Label>
+                <Input
+                  id="displayName"
+                  placeholder="Enter your full name"
+                  value={profile.display_name}
+                  onChange={(e) => setProfile(prev => ({ ...prev, display_name: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    value={profile.email}
+                    disabled
+                    className="pl-10 bg-muted"
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-between items-center py-2">
                 <span className="text-sm text-muted-foreground">Account Status</span>
-                <Badge variant={isProUser ? "default" : "secondary"}>
+                <Badge variant={isProUser ? "default" : "secondary"} className={isProUser ? "bg-pro-gold text-pro-gold-foreground" : ""}>
+                  {isProUser && <Crown className="w-3 h-3 mr-1" />}
                   {isProUser ? 'Pro Member' : 'Free Plan'}
                 </Badge>
               </div>
-              {isProUser && subscriptionData?.subscription_end && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-muted-foreground">Subscription Ends</span>
-                  <span className="text-sm font-medium">
-                    {new Date(subscriptionData.subscription_end).toLocaleDateString()}
-                  </span>
+
+              {profile.created_at && (
+                <div className="space-y-2">
+                  <Label>Member Since</Label>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    {new Date(profile.created_at).toLocaleDateString()}
+                  </div>
                 </div>
               )}
             </div>
+
+            <Separator />
+
+            {/* Save Button */}
+            <Button 
+              onClick={updateProfile}
+              disabled={saving || !profile.display_name.trim()}
+              className="w-full"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Actions */}
+        {/* Quick Actions */}
         <div className="space-y-3">
           <Card 
             className="cursor-pointer hover:shadow-md transition-shadow"

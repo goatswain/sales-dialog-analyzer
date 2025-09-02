@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
 import { GroupAISummary } from "@/components/GroupAISummary"
 import { Button } from '@/components/ui/button';
+import { UserAvatar } from '@/components/UserAvatar';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -40,6 +41,7 @@ interface Member {
   profiles: {
     email: string;
     display_name?: string;
+    avatar_url?: string;
   };
 }
 
@@ -55,6 +57,7 @@ interface Message {
   profiles: {
     email: string;
     display_name?: string;
+    avatar_url?: string;
   };
   recordings?: {
     title: string;
@@ -144,7 +147,7 @@ const GroupChat = () => {
           membersData.map(async (member) => {
             const { data: profile } = await supabase
               .from('profiles')
-              .select('email, display_name')
+              .select('email, display_name, avatar_url')
               .eq('user_id', member.user_id)
               .single();
 
@@ -152,7 +155,8 @@ const GroupChat = () => {
               ...member,
               profiles: { 
                 email: profile?.email || 'Unknown',
-                display_name: profile?.display_name
+                display_name: profile?.display_name,
+                avatar_url: profile?.avatar_url
               }
             };
           })
@@ -185,7 +189,12 @@ const GroupChat = () => {
           created_at,
           recording_id,
           audio_url,
-          duration_seconds
+          duration_seconds,
+          profiles!group_messages_user_id_fkey (
+            display_name,
+            email,
+            avatar_url
+          )
         `)
         .eq('group_id', groupId)
         .order('created_at', { ascending: true });
@@ -198,7 +207,7 @@ const GroupChat = () => {
           const [profileResult, recordingResult] = await Promise.all([
             supabase
               .from('profiles')
-              .select('email, display_name')
+              .select('email, display_name, avatar_url')
               .eq('user_id', message.user_id)
               .single(),
             message.recording_id
@@ -214,7 +223,8 @@ const GroupChat = () => {
             ...message,
             profiles: { 
               email: profileResult.data?.email || 'Unknown',
-              display_name: profileResult.data?.display_name
+              display_name: profileResult.data?.display_name,
+              avatar_url: profileResult.data?.avatar_url
             },
             recordings: recordingResult.data
           };
@@ -459,8 +469,14 @@ const GroupChat = () => {
                   } rounded-lg p-3`}
                 >
                   <div className="flex items-center gap-2 mb-1">
+                    <UserAvatar
+                      avatarUrl={message.profiles?.avatar_url}
+                      displayName={message.profiles?.display_name}
+                      email={message.profiles?.email}
+                      size="sm"
+                    />
                     <span className="text-xs opacity-75">
-                      {message.profiles.display_name || message.profiles.email.split('@')[0]}
+                      {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Unknown'}
                     </span>
                     <span className="text-xs opacity-50">
                       {new Date(message.created_at).toLocaleTimeString()}
