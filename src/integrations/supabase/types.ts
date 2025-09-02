@@ -22,7 +22,7 @@ export type Database = {
           question: string
           recording_id: string | null
           timestamps: Json | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           answer: string
@@ -31,7 +31,7 @@ export type Database = {
           question: string
           recording_id?: string | null
           timestamps?: Json | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           answer?: string
@@ -40,7 +40,7 @@ export type Database = {
           question?: string
           recording_id?: string | null
           timestamps?: Json | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -301,7 +301,7 @@ export type Database = {
           segments: Json | null
           speaker_count: number | null
           text: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string | null
@@ -310,7 +310,7 @@ export type Database = {
           segments?: Json | null
           speaker_count?: number | null
           text: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string | null
@@ -319,7 +319,7 @@ export type Database = {
           segments?: Json | null
           speaker_count?: number | null
           text?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
