@@ -88,6 +88,9 @@ const Groups = () => {
 
     setCreating(true);
     try {
+      console.log('Creating group with user ID:', user?.id);
+      console.log('User object:', user);
+      
       // Create group
       const { data: group, error: groupError } = await supabase
         .from('groups')
