@@ -44,6 +44,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
   const { toast } = useToast();
 
@@ -202,57 +203,67 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
 
       {/* AI Summary */}
       {analysis && (
-        <Card className="p-3 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-primary">AI Summary</span>
-            </div>
-            
-            {analysis.summary && (
-              <div>
-                <h4 className="text-xs font-medium text-muted-foreground mb-1">Overview:</h4>
-                <p className="text-sm text-foreground">{analysis.summary}</p>
-              </div>
-            )}
+        <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-2 h-auto p-2">
+              {summaryOpen ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              <Zap className="h-3 w-3 text-primary" />
+              <span className="text-xs">View AI Summary</span>
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <Card className="p-3 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+              <div className="space-y-3">
+                {analysis.summary && (
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground mb-1">Overview:</h4>
+                    <p className="text-sm text-foreground">{analysis.summary}</p>
+                  </div>
+                )}
 
-            {analysis.objections && analysis.objections.length > 0 && (
-              <div>
-                <h4 className="text-xs font-medium text-muted-foreground mb-1">Key Objections:</h4>
-                <ul className="text-sm space-y-1">
-                  {analysis.objections.map((objection, index) => (
-                    <li key={index} className="text-foreground">• {objection}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                {analysis.objections && analysis.objections.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground mb-1">Key Objections:</h4>
+                    <ul className="text-sm space-y-1">
+                      {analysis.objections.map((objection, index) => (
+                        <li key={index} className="text-foreground">• {objection}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-            {analysis.improvements && analysis.improvements.length > 0 && (
-              <div>
-                <h4 className="text-xs font-medium text-muted-foreground mb-1">Improvement Tips:</h4>
-                <ul className="text-sm space-y-1">
-                  {analysis.improvements.map((tip, index) => (
-                    <li key={index} className="text-foreground">• {tip}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                {analysis.improvements && analysis.improvements.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground mb-1">Improvement Tips:</h4>
+                    <ul className="text-sm space-y-1">
+                      {analysis.improvements.map((tip, index) => (
+                        <li key={index} className="text-foreground">• {tip}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-            {analysis.key_moments && analysis.key_moments.length > 0 && (
-              <div>
-                <h4 className="text-xs font-medium text-muted-foreground mb-1">Key Moments:</h4>
-                <ul className="text-sm space-y-1">
-                  {analysis.key_moments.map((moment, index) => (
-                    <li key={index} className="text-foreground">
-                      <span className="font-mono text-xs text-muted-foreground">{moment.timestamp}</span>
-                      {' - '}{moment.description}
-                    </li>
-                  ))}
-                </ul>
+                {analysis.key_moments && analysis.key_moments.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground mb-1">Key Moments:</h4>
+                    <ul className="text-sm space-y-1">
+                      {analysis.key_moments.map((moment, index) => (
+                        <li key={index} className="text-foreground">
+                          <span className="font-mono text-xs text-muted-foreground">{moment.timestamp}</span>
+                          {' - '}{moment.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </Card>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
       )}
     </div>
   );

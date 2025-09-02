@@ -21,7 +21,8 @@ import {
   Mic,
   Play,
   Pause,
-  Clock
+  Clock,
+  Edit3
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import TopBar from '@/components/TopBar';
@@ -81,9 +82,13 @@ const GroupChat = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [renaming, setRenaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isProUser = subscriptionData?.subscribed || false;
+  const isGroupCreator = group && user && members.find(m => m.user_id === user.id)?.role === 'creator';
 
   useEffect(() => {
     if (groupId && user) {
@@ -350,6 +355,42 @@ const GroupChat = () => {
     }
   };
 
+  const renameGroup = async () => {
+    if (!newGroupName.trim() || !groupId) return;
+
+    setRenaming(true);
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({ name: newGroupName.trim() })
+        .eq('id', groupId);
+
+      if (error) throw error;
+
+      // Update local state
+      if (group) {
+        setGroup({ ...group, name: newGroupName.trim() });
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Group name updated successfully'
+      });
+
+      setNewGroupName('');
+      setIsRenameDialogOpen(false);
+    } catch (error) {
+      console.error('Error renaming group:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to rename group',
+        variant: 'destructive'
+      });
+    } finally {
+      setRenaming(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -386,6 +427,54 @@ const GroupChat = () => {
           </div>
 
           <div className="flex gap-2">
+            {isGroupCreator && (
+              <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Edit3 className="h-4 w-4" />
+                    Rename
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Rename Group</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Group Name
+                      </label>
+                      <Input
+                        placeholder="Enter new group name"
+                        value={newGroupName}
+                        onChange={(e) => setNewGroupName(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && renameGroup()}
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsRenameDialogOpen(false);
+                          setNewGroupName('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={renameGroup}
+                        disabled={!newGroupName.trim() || renaming}
+                        className="gap-2"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        {renaming ? 'Renaming...' : 'Rename Group'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+            
             <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">
@@ -529,6 +618,9 @@ const GroupChat = () => {
                           )}
                         </div>
                       </div>
+                      <div className="text-xs opacity-75 mt-1">
+                        Shared by {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Unknown'}
+                      </div>
                       {message.recording_id && message.duration_seconds && (
                         <GroupAISummary 
                           recordingId={message.recording_id}
@@ -565,6 +657,9 @@ const GroupChat = () => {
                           {Math.floor(message.recordings.duration_seconds / 60)}:
                           {(message.recordings.duration_seconds % 60).toString().padStart(2, '0')}
                         </div>
+                      </div>
+                      <div className="text-xs opacity-75 mt-1">
+                        Shared by {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Unknown'}
                       </div>
                       {message.recording_id && (
                         <GroupAISummary 
