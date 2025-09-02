@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthGuard';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/components/ui/use-toast"
+import { GroupAISummary } from "@/components/GroupAISummary"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -501,6 +503,13 @@ const GroupChat = () => {
                           )}
                         </div>
                       </div>
+                      {message.recording_id && message.duration_seconds && (
+                        <GroupAISummary 
+                          recordingId={message.recording_id}
+                          duration={message.duration_seconds}
+                          autoGenerate={message.duration_seconds < 120}
+                        />
+                      )}
                     </div>
                   )}
 
@@ -531,6 +540,13 @@ const GroupChat = () => {
                           {(message.recordings.duration_seconds % 60).toString().padStart(2, '0')}
                         </div>
                       </div>
+                      {message.recording_id && (
+                        <GroupAISummary 
+                          recordingId={message.recording_id}
+                          duration={message.recordings.duration_seconds}
+                          autoGenerate={message.recordings.duration_seconds < 120}
+                        />
+                      )}
                     </div>
                   )}
                 </div>
