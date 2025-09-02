@@ -147,7 +147,7 @@ const Pricing = () => {
         </div>
 
         {/* Bottom CTA */}
-        <div className="text-center mt-16">
+        <div className="text-center mt-16 mb-24">
           <p className="text-muted-foreground mb-4">
             Need a custom solution for your team?
           </p>

@@ -13,7 +13,7 @@ const TopBar: React.FC<TopBarProps> = ({ isProUser }) => {
           <img 
             src="/lovable-uploads/0661e838-ae1b-4b7a-ba8d-98e91f080271.png" 
             alt="Swain AI Logo" 
-            className="w-8 h-8 object-contain"
+            className="w-12 h-12 object-contain"
           />
           <div className="flex items-center space-x-2">
             <h1 className="text-lg font-poppins font-bold text-foreground">SwainAI</h1>
