@@ -91,6 +91,14 @@ const Groups = () => {
       console.log('Creating group with user ID:', user?.id);
       console.log('User object:', user);
       
+      // First, let's verify the current session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      console.log('Current session:', sessionData);
+      
+      if (sessionError || !sessionData.session) {
+        throw new Error('No valid session found');
+      }
+
       // Create group
       const { data: group, error: groupError } = await supabase
         .from('groups')
@@ -100,6 +108,8 @@ const Groups = () => {
         })
         .select()
         .single();
+
+      console.log('Insert result:', { group, groupError });
 
       if (groupError) throw groupError;
 

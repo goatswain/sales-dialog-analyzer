@@ -336,6 +336,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      debug_auth_uid: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       is_group_creator: {
         Args: { group_id: string; user_id: string }
         Returns: boolean
