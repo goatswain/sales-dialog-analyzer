@@ -152,7 +152,11 @@ const Groups = () => {
 
       setNewGroupName('');
       setIsCreateDialogOpen(false);
-      fetchGroups();
+      
+      // Add a small delay to ensure the database transaction is committed
+      setTimeout(() => {
+        fetchGroups();
+      }, 100);
     } catch (error) {
       console.error('Error creating group:', error);
       toast({
