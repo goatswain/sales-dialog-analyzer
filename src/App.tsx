@@ -10,6 +10,8 @@ import DailyCoaching from "./pages/DailyCoaching";
 import Pricing from "./pages/Pricing";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
+import Groups from "./pages/Groups";
+import GroupChat from "./pages/GroupChat";
 import AuthGuard from "./components/AuthGuard";
 import Footer from "./components/Footer";
 import { SubscriptionProvider } from "./hooks/useSubscription";
@@ -31,6 +33,8 @@ const App = () => (
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
                 <Route path="/payment-canceled" element={<PaymentCanceled />} />
+                <Route path="/groups" element={<Groups />} />
+                <Route path="/groups/:groupId" element={<GroupChat />} />
                 <Route path="/auth" element={<Auth />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
