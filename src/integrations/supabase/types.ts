@@ -229,7 +229,7 @@ export type Database = {
           id: string
           status: string | null
           title: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           audio_filename?: string | null
@@ -241,7 +241,7 @@ export type Database = {
           id?: string
           status?: string | null
           title?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           audio_filename?: string | null
@@ -253,7 +253,7 @@ export type Database = {
           id?: string
           status?: string | null
           title?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
