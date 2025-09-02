@@ -62,6 +62,36 @@ const RecentCalls: React.FC<RecentCallsProps> = ({ onSelectRecording, refreshTri
     fetchRecentRecordings();
   }, [refreshTrigger]);
 
+  // Set up real-time subscriptions for status updates
+  useEffect(() => {
+    console.log('🔄 Setting up real-time subscriptions...');
+    
+    const channel = supabase
+      .channel('recent_recordings_and_transcripts_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'recordings' },
+        async (payload) => {
+          console.log('📊 Recordings table change detected:', payload);
+          await fetchRecentRecordings();
+        }
+      )
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'transcripts' },
+        async (payload) => {
+          console.log('📝 Transcripts table change detected:', payload);
+          await fetchRecentRecordings();
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Recent calls subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔌 Unsubscribing from recent calls real-time updates');
+      channel.unsubscribe();
+    };
+  }, []);
+
   const formatDuration = (seconds?: number) => {
     if (!seconds) return 'Unknown';
     const mins = Math.floor(seconds / 60);

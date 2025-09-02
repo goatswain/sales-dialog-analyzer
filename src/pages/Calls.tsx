@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import TopBar from '@/components/TopBar';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useToast } from '@/hooks/use-toast';
 
 interface Recording {
   id: string;
@@ -25,6 +26,7 @@ interface Recording {
 const Calls = () => {
   const navigate = useNavigate();
   const { subscriptionData } = useSubscription();
+  const { toast } = useToast();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,6 +70,43 @@ const Calls = () => {
 
   useEffect(() => {
     fetchRecordings();
+  }, []);
+
+  // Set up real-time subscriptions for status updates
+  useEffect(() => {
+    console.log('🔄 Setting up real-time subscriptions for all calls...');
+    
+    const channel = supabase
+      .channel('all_recordings_and_transcripts_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'recordings' },
+        async (payload) => {
+          console.log('📊 Recordings table change detected:', payload);
+          await fetchRecordings();
+        }
+      )
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'transcripts' },
+        async (payload) => {
+          console.log('📝 Transcripts table change detected:', payload);
+          await fetchRecordings();
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 All calls subscription status:', status);
+      });
+
+    // Fallback: Poll for updates every 10 seconds
+    const pollInterval = setInterval(async () => {
+      console.log('🔄 Polling for updates (fallback)...');
+      await fetchRecordings();
+    }, 10000);
+
+    return () => {
+      console.log('🔌 Unsubscribing from all calls real-time updates');
+      channel.unsubscribe();
+      clearInterval(pollInterval);
+    };
   }, []);
 
   const filteredRecordings = recordings.filter(recording =>
@@ -156,9 +195,19 @@ const Calls = () => {
           : recording
       ));
       
+      toast({
+        title: "Title Updated",
+        description: "Recording title has been updated successfully.",
+      });
+      
       cancelEditing();
     } catch (error) {
       console.error('Error:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update recording title. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -193,8 +242,18 @@ const Calls = () => {
 
       setRecordings(prev => prev.filter(recording => recording.id !== recordingId));
       
+      toast({
+        title: "Recording Deleted",
+        description: "Recording has been permanently deleted.",
+      });
+      
     } catch (error) {
       console.error('Error:', error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete recording. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setDeleting(null);
     }
@@ -264,7 +323,7 @@ const Calls = () => {
             {filteredRecordings.map((recording) => (
               <Card 
                 key={recording.id} 
-                className="cursor-pointer hover:shadow-md transition-all duration-200 border-0 bg-card"
+                className="group cursor-pointer hover:shadow-md transition-all duration-200 border-0 bg-card"
                 onClick={() => recording.status === 'completed' && navigate('/', { state: { recordingId: recording.id } })}
               >
                 <CardContent className="p-4">
@@ -296,7 +355,7 @@ const Calls = () => {
                                 saveTitle(recording.id);
                               }}
                               disabled={saving || !editTitle.trim()}
-                              className="h-8 w-8 p-0"
+                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                             >
                               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                             </Button>
@@ -308,7 +367,7 @@ const Calls = () => {
                                 cancelEditing();
                               }}
                               disabled={saving}
-                              className="h-8 w-8 p-0"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                             >
                               <X className="w-4 h-4" />
                             </Button>
@@ -318,9 +377,9 @@ const Calls = () => {
                             <h3 className="font-medium text-base text-foreground truncate flex-1">
                               {recording.title || 'Sales Call'}
                             </h3>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                               {recording.status === 'completed' && (
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge variant="secondary" className="text-xs mr-2">
                                   {getScore()}%
                                 </Badge>
                               )}
@@ -331,7 +390,7 @@ const Calls = () => {
                                   e.stopPropagation();
                                   startEditing(recording);
                                 }}
-                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </Button>
@@ -343,7 +402,7 @@ const Calls = () => {
                                   deleteRecording(recording.id);
                                 }}
                                 disabled={deleting === recording.id}
-                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                               >
                                 {deleting === recording.id ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -369,6 +428,11 @@ const Calls = () => {
                             <FileAudio className="w-4 h-4" />
                             {formatDuration(recording.duration_seconds)}
                           </span>
+                        )}
+                        {!editingId && recording.status === 'completed' && (
+                          <Badge variant="secondary" className="text-xs group-hover:hidden">
+                            {getScore()}%
+                          </Badge>
                         )}
                       </div>
                       
