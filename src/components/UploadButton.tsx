@@ -5,7 +5,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthGuard';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { getStoredApiKey, hasValidApiKey } from '@/components/ApiKeyManager';
 
 interface UploadButtonProps {
   onUploadComplete: (recordingId: string) => void;
@@ -105,24 +104,12 @@ const UploadButton: React.FC<UploadButtonProps> = ({ onUploadComplete, session: 
   };
 
   const startTranscription = async (recordingId: string) => {
-    // Check if API key is available
-    const apiKey = getStoredApiKey();
-    if (!apiKey || !hasValidApiKey()) {
-      toast({
-        title: "API Key Required",
-        description: "Please set up your OpenAI API key in the settings to enable transcription.",
-        variant: "destructive",
-      });
-      throw new Error('OpenAI API key not configured');
-    }
-
     try {
-      console.log('🎤 Starting transcription with stored API key...')
+      console.log('🎤 Starting transcription...')
       
       const { data: result, error } = await supabase.functions.invoke('transcribe-audio-v2', {
         body: { 
-          recordingId,
-          apiKey: apiKey 
+          recordingId
         },
       });
 

@@ -51,7 +51,7 @@ serve(async (req) => {
     console.log('✅ User authenticated:', user.id)
 
     // Parse request body
-    const { recordingId, apiKey } = await req.json()
+    const { recordingId } = await req.json()
     
     if (!recordingId) {
       return new Response(
@@ -60,21 +60,23 @@ serve(async (req) => {
       )
     }
 
-    if (!apiKey || apiKey.trim() === '') {
+    // Use server-side OpenAI API key
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!openaiApiKey) {
       return new Response(
         JSON.stringify({ 
-          error: 'OpenAI API key required', 
-          code: 'MISSING_API_KEY',
-          message: 'Please provide your OpenAI API key to enable transcription'
+          error: 'OpenAI API key not configured on server', 
+          code: 'SERVER_API_KEY_MISSING',
+          message: 'Server configuration error - please contact support'
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     console.log('🎬 Starting transcription for recording:', recordingId)
 
     // Start background transcription
-    EdgeRuntime.waitUntil(performTranscription(recordingId, apiKey.trim(), user.id))
+    EdgeRuntime.waitUntil(performTranscription(recordingId, openaiApiKey, user.id))
 
     // Return immediate response
     return new Response(

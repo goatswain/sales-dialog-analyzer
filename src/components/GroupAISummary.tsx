@@ -6,7 +6,6 @@ import { ChevronDown, ChevronRight, Zap, Loader2, FileText } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './ui/use-toast';
 import { sanitizeHtml, sanitizeInput } from '@/utils/sanitize';
-import { getStoredApiKey } from '@/components/ApiKeyManager';
 
 interface Segment {
   start: number;
@@ -96,36 +95,35 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
       let transcriptData = existingTranscript;
 
       if (!existingTranscript) {
-        // Get API key from localStorage for transcription
-        const apiKey = getStoredApiKey()
-        if (!apiKey) {
+        // Start transcription without API key requirement - server handles it
+        try {
+          const { error: transcribeError } = await supabase.functions.invoke('transcribe-audio-v2', {
+            body: { recordingId }
+          });
+
+          if (transcribeError) {
+            throw new Error(`Transcription failed: ${transcribeError.message}`);
+          }
+
+          // Wait a bit and try to fetch transcript
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          const { data: newTranscript } = await supabase
+            .from('transcripts')
+            .select('*')
+            .eq('recording_id', recordingId)
+            .single();
+
+          transcriptData = newTranscript;
+        } catch (error) {
+          console.error('Error starting transcription:', error);
           toast({
-            title: "API Key Required",
-            description: "Please add your OpenAI API key in Settings to enable transcription.",
+            title: "Transcription Error",
+            description: "Failed to start transcription. Please try again.",
             variant: "destructive",
-          })
-          return
+          });
+          return;
         }
-
-        // Trigger transcription
-        const { error: transcribeError } = await supabase.functions.invoke('transcribe-audio-v2', {
-          body: { recordingId, apiKey }
-        });
-
-        if (transcribeError) {
-          throw new Error(`Transcription failed: ${transcribeError.message}`);
-        }
-
-        // Wait a bit and try to fetch transcript
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const { data: newTranscript } = await supabase
-          .from('transcripts')
-          .select('*')
-          .eq('recording_id', recordingId)
-          .single();
-
-        transcriptData = newTranscript;
       }
 
       if (transcriptData) {
@@ -136,22 +134,11 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
 
         // Only generate AI analysis if we don't have existing saved analysis
         if (!existingAnalysis) {
-          // Get API key from localStorage
-          const apiKey = getStoredApiKey()
-          if (!apiKey) {
-            toast({
-              title: "API Key Required",
-              description: "Please add your OpenAI API key in Settings to enable AI analysis.",
-              variant: "destructive",
-            })
-            return
-          }
-
+          // Use server-side OpenAI API key through edge function
           const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-conversation', {
             body: {
               recordingId,
-              question: 'Please provide a concise summary highlighting key points, objections raised, responses given, and improvement tips for this conversation.',
-              apiKey
+              question: 'Please provide a concise summary highlighting key points, objections raised, responses given, and improvement tips for this conversation.'
             }
           });
 

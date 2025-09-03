@@ -8,7 +8,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, Play, Pause, Send, Copy, MessageSquare, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { getStoredApiKey } from '@/components/ApiKeyManager';
 
 interface Segment {
   start_time: number;
@@ -109,24 +108,12 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
   const handleAskQuestion = async () => {
     if (!question.trim()) return;
 
-    // Get API key from localStorage
-    const apiKey = getStoredApiKey()
-    if (!apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please add your OpenAI API key in Settings to enable AI analysis.",
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke('analyze-conversation', {
         body: {
           recordingId: recordingId,
-          question: question.trim(),
-          apiKey
+          question: question.trim()
         },
       });
 
