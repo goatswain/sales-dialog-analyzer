@@ -12,31 +12,50 @@ serve(async (req) => {
   }
 
   try {
-    // Get the JWT token - it's already validated by the edge function
+    // Get the JWT token from authorization header
     const authHeader = req.headers.get('authorization')
     if (!authHeader) {
+      console.error('No authorization header found')
       return new Response(
         JSON.stringify({ error: 'No authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Create Supabase client with the user's JWT
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { authorization: authHeader } } }
-    )
-
-    // Get user (JWT is already validated by edge function)
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
+    // Extract the token from "Bearer <token>"
+    const token = authHeader.replace('Bearer ', '')
+    if (!token) {
+      console.error('No token found in authorization header')
       return new Response(
-        JSON.stringify({ error: 'Invalid user' }),
+        JSON.stringify({ error: 'Invalid authorization format' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Create Supabase client with service role key for admin operations
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Verify the JWT and get user info
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+    
+    if (userError || !user) {
+      console.error('User authentication failed:', userError?.message)
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('User authenticated:', user.id)
 
     // Process file upload
     const formData = await req.formData()
