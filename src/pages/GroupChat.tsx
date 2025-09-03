@@ -854,11 +854,9 @@ const GroupChat = () => {
                     <div key={member.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <UserAvatar 
-                          user={{
-                            display_name: member.profiles.display_name,
-                            email: member.profiles.email,
-                            avatar_url: member.profiles.avatar_url
-                          }} 
+                          avatarUrl={member.profiles.avatar_url}
+                          displayName={member.profiles.display_name}
+                          email={member.profiles.email}
                         />
                         <div>
                           <p className="font-medium">
@@ -945,7 +943,11 @@ const GroupChat = () => {
                 </div>
               ) : (
                 <div className="flex gap-3">
-                  <UserAvatar user={message.profiles} />
+                  <UserAvatar 
+                    avatarUrl={message.profiles.avatar_url}
+                    displayName={message.profiles.display_name}
+                    email={message.profiles.email}
+                  />
                   <div className="flex-1 space-y-1">
                     <div className="flex items-baseline gap-2">
                       <span className="font-medium text-sm">
