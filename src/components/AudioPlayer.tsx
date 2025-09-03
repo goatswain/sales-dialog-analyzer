@@ -46,7 +46,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
     // Mobile-specific optimizations
     audio.preload = isMobile ? 'metadata' : 'auto';
-    audio.crossOrigin = 'anonymous';
+    // Remove crossOrigin setting that might cause CORS issues
+    // audio.crossOrigin = 'anonymous';
     
     // Mobile-specific attributes for better compatibility
     if (isMobile) {
