@@ -19,7 +19,9 @@ export const SecurityHeaders = () => {
         object-src 'none';
         base-uri 'self';
         form-action 'self';
+        frame-ancestors 'none';
         upgrade-insecure-requests;
+        block-all-mixed-content;
       `.replace(/\s+/g, ' ').trim();
       document.head.appendChild(cspMeta);
     }

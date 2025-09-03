@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collap
 import { ChevronDown, ChevronRight, Zap, Loader2, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './ui/use-toast';
+import { sanitizeHtml, sanitizeInput } from '@/utils/sanitize';
 
 interface Segment {
   start: number;
@@ -217,11 +218,11 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                        <span className="font-medium text-primary min-w-[70px]">
                          {segment.speaker || `Speaker ${(index % 2) + 1}`}:
                        </span>
-                       <span className="text-foreground">{segment.text}</span>
+                       <span className="text-foreground">{sanitizeInput(segment.text)}</span>
                      </div>
                    ))
                  ) : (
-                   <p className="text-foreground">{transcript.text}</p>
+                   <p className="text-foreground">{sanitizeInput(transcript.text)}</p>
                  )}
               </div>
             </Card>
@@ -249,7 +250,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                 {analysis.summary && (
                   <div>
                     <h4 className="text-xs font-medium text-muted-foreground mb-1">Overview:</h4>
-                    <p className="text-sm text-foreground">{analysis.summary}</p>
+                    <p className="text-sm text-foreground">{sanitizeInput(analysis.summary)}</p>
                   </div>
                 )}
 
@@ -258,7 +259,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                     <h4 className="text-xs font-medium text-muted-foreground mb-1">Key Objections:</h4>
                     <ul className="text-sm space-y-1">
                       {analysis.objections.map((objection, index) => (
-                        <li key={index} className="text-foreground">• {objection}</li>
+                        <li key={index} className="text-foreground">• {sanitizeInput(objection)}</li>
                       ))}
                     </ul>
                   </div>
@@ -269,7 +270,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                     <h4 className="text-xs font-medium text-muted-foreground mb-1">Improvement Tips:</h4>
                     <ul className="text-sm space-y-1">
                       {analysis.improvements.map((tip, index) => (
-                        <li key={index} className="text-foreground">• {tip}</li>
+                        <li key={index} className="text-foreground">• {sanitizeInput(tip)}</li>
                       ))}
                     </ul>
                   </div>
@@ -282,7 +283,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                       {analysis.key_moments.map((moment, index) => (
                         <li key={index} className="text-foreground">
                           <span className="font-mono text-xs text-muted-foreground">{moment.timestamp}</span>
-                          {' - '}{moment.description}
+                          {' - '}{sanitizeInput(moment.description)}
                         </li>
                       ))}
                     </ul>

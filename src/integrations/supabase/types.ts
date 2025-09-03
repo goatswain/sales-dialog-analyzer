@@ -430,6 +430,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sensitive_operation_limits: {
+        Row: {
+          count: number
+          created_at: string
+          id: string
+          operation_type: string
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          id?: string
+          operation_type: string
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          id?: string
+          operation_type?: string
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           created_at: string
@@ -509,6 +536,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_sensitive_operation_limit: {
+        Args: {
+          max_operations?: number
+          operation_type: string
+          window_minutes?: number
+        }
+        Returns: boolean
+      }
       create_group_safe: {
         Args: { creator_user_id: string; group_name: string }
         Returns: {
