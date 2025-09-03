@@ -46,8 +46,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     audio.preload = isMobile ? 'metadata' : 'auto';
     audio.crossOrigin = 'anonymous';
     
-    // Additional mobile optimizations
+    // Mobile-specific attributes for better compatibility
     if (isMobile) {
+      audio.setAttribute('playsinline', 'true'); // Prevent fullscreen on iOS
+      audio.setAttribute('webkit-playsinline', 'true'); // Legacy iOS support
       audio.load(); // Preload metadata on mobile
     }
     
@@ -201,34 +203,40 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   if (compact) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
-        <audio ref={audioRef} src={audioUrl} />
+        <audio 
+          ref={audioRef} 
+          src={audioUrl}
+          playsInline
+          webkit-playsinline="true"
+        />
         <Button
           variant="ghost"
-          size="sm"
+          size={isMobile ? "default" : "sm"}
           onClick={handlePlayPause}
           disabled={isLoading}
-          className="h-8 w-8 p-0"
+          className={isMobile ? "h-9 w-9 p-0" : "h-8 w-8 p-0"}
         >
           {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className={`${isMobile ? "w-5 h-5" : "w-4 h-4"} animate-spin`} />
           ) : isPlaying ? (
-            <Pause className="w-4 h-4" />
+            <Pause className={isMobile ? "w-5 h-5" : "w-4 h-4"} />
           ) : (
-            <Play className="w-4 h-4" />
+            <Play className={isMobile ? "w-5 h-5" : "w-4 h-4"} />
           )}
         </Button>
         
-          <div className="flex-1 min-w-0">
-            <Slider
-              value={[progress]}
-              onValueChange={handleSeek}
-              max={100}
-              step={0.1}
-              className="cursor-pointer"
-            />
-          </div>
+        <div className="flex-1 min-w-0">
+          <Slider
+            value={[progress]}
+            onValueChange={handleSeek}
+            max={100}
+            step={0.1}
+            className={`cursor-pointer ${isMobile ? 'h-6' : ''}`}
+            disabled={isLoading || audioDuration === 0}
+          />
+        </div>
         
-        <div className="text-xs text-muted-foreground font-mono">
+        <div className={`${isMobile ? 'text-sm' : 'text-xs'} text-muted-foreground font-mono whitespace-nowrap`}>
           {formatTime(currentTime)} / {formatTime(audioDuration)}
         </div>
       </div>
@@ -237,8 +245,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   return (
     <Card className={className}>
-      <CardContent className="p-4">
-        <audio ref={audioRef} src={audioUrl} />
+      <CardContent className={isMobile ? "p-3" : "p-4"}>
+        <audio 
+          ref={audioRef} 
+          src={audioUrl}
+          playsInline
+          webkit-playsinline="true"
+        />
         
         {title && (
           <div className="mb-4">
@@ -247,16 +260,16 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         )}
         
         {/* Progress Bar */}
-        <div className="mb-4">
+        <div className={isMobile ? "mb-3" : "mb-4"}>
           <Slider
             value={[progress]}
             onValueChange={handleSeek}
             max={100}
             step={0.1}
-            className="cursor-pointer"
+            className={`cursor-pointer ${isMobile ? 'h-6' : ''}`}
             disabled={isLoading || audioDuration === 0}
           />
-          <div className="flex justify-between text-xs text-muted-foreground mt-1 font-mono">
+          <div className={`flex justify-between ${isMobile ? 'text-sm' : 'text-xs'} text-muted-foreground mt-1 font-mono`}>
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(audioDuration)}</span>
           </div>
@@ -267,16 +280,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
-              size="sm"
+              size={isMobile ? "default" : "sm"}
               onClick={handlePlayPause}
               disabled={isLoading}
+              className={isMobile ? "h-10 w-10" : ""}
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className={`${isMobile ? "w-6 h-6" : "w-5 h-5"} animate-spin`} />
               ) : isPlaying ? (
-                <Pause className="w-5 h-5" />
+                <Pause className={isMobile ? "w-6 h-6" : "w-5 h-5"} />
               ) : (
-                <Play className="w-5 h-5" />
+                <Play className={isMobile ? "w-6 h-6" : "w-5 h-5"} />
               )}
             </Button>
           </div>
@@ -292,6 +306,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 step={1}
                 className="max-w-[80px]"
               />
+            </div>
+          )}
+          
+          {/* Mobile-specific: Show current time on the right */}
+          {isMobile && (
+            <div className="text-sm text-muted-foreground font-mono">
+              {formatTime(currentTime)}
             </div>
           )}
         </div>
