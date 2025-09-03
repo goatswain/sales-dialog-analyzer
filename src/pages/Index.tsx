@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Mic, BarChart3, Users, ArrowRight, Star, CheckCircle } from 'lucide-react';
 import { AuthContext } from '@/components/AuthGuard';
 import { AuthenticatedDashboard } from '@/components/AuthenticatedDashboard';
-import { SubscriptionProvider } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import dashboardPreview from '@/assets/dashboard-preview.jpg';
 
@@ -70,16 +69,14 @@ const Index = () => {
   // Show authenticated dashboard for logged-in users
   if (session) {
     return (
-      <SubscriptionProvider>
-        <AuthenticatedDashboard
-          currentView={currentView}
-          selectedRecordingId={selectedRecordingId}
-          refreshTrigger={refreshTrigger}
-          onSelectRecording={handleSelectRecording}
-          onBackToHome={handleBackToHome}
-          onUploadComplete={handleUploadComplete}
-        />
-      </SubscriptionProvider>
+      <AuthenticatedDashboard
+        currentView={currentView}
+        selectedRecordingId={selectedRecordingId}
+        refreshTrigger={refreshTrigger}
+        onSelectRecording={handleSelectRecording}
+        onBackToHome={handleBackToHome}
+        onUploadComplete={handleUploadComplete}
+      />
     );
   }
 

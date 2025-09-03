@@ -34,7 +34,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Index />} />
             
-            {/* Protected routes - wrapped in AuthGuard */}
+            {/* Protected routes - wrapped in AuthGuard and SubscriptionProvider */}
             <Route path="/*" element={
               <AuthGuard>
                 <SubscriptionProvider>
