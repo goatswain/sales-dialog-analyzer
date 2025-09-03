@@ -122,7 +122,7 @@ const UploadButton: React.FC<UploadButtonProps> = ({ onUploadComplete, session: 
       const { data: result, error } = await supabase.functions.invoke('transcribe-audio-v2', {
         body: { 
           recordingId,
-          openaiApiKey: apiKey 
+          apiKey: apiKey 
         },
       });
 

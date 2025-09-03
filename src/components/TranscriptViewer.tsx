@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, Play, Pause, Send, Copy, MessageSquare, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getStoredApiKey } from '@/components/ApiKeyManager';
 
 interface Segment {
   start_time: number;
@@ -109,7 +110,7 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
     if (!question.trim()) return;
 
     // Get API key from localStorage
-    const apiKey = localStorage.getItem('openai-api-key')
+    const apiKey = getStoredApiKey()
     if (!apiKey) {
       toast({
         title: "API Key Required",

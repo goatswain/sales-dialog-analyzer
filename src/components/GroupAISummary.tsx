@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, Zap, Loader2, FileText } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './ui/use-toast';
 import { sanitizeHtml, sanitizeInput } from '@/utils/sanitize';
+import { getStoredApiKey } from '@/components/ApiKeyManager';
 
 interface Segment {
   start: number;
@@ -96,7 +97,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
 
       if (!existingTranscript) {
         // Get API key from localStorage for transcription
-        const apiKey = localStorage.getItem('openai-api-key')
+        const apiKey = getStoredApiKey()
         if (!apiKey) {
           toast({
             title: "API Key Required",
@@ -136,7 +137,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
         // Only generate AI analysis if we don't have existing saved analysis
         if (!existingAnalysis) {
           // Get API key from localStorage
-          const apiKey = localStorage.getItem('openai-api-key')
+          const apiKey = getStoredApiKey()
           if (!apiKey) {
             toast({
               title: "API Key Required",
