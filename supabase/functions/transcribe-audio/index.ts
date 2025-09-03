@@ -80,17 +80,25 @@ async function performTranscriptionWithKey(recordingId: string, openaiApiKey: st
 
     // Validate the provided API key
     console.log('🔑 Validating provided API key...')
+    console.log('🔍 Raw openaiApiKey value:', JSON.stringify(openaiApiKey))
+    console.log('🔍 Type of openaiApiKey:', typeof openaiApiKey)
+    
     if (!openaiApiKey || openaiApiKey.trim() === '') {
       console.error('❌ OpenAI API key is missing or empty')
       throw new Error('OpenAI API key not configured')
     }
     
     const validApiKey = openaiApiKey.trim()
-    console.log('✅ API key validation - Length:', validApiKey.length, 'Starts with sk-:', validApiKey.startsWith('sk-'))
+    console.log('✅ API key validation details:')
+    console.log('  - Length:', validApiKey.length)
+    console.log('  - Starts with sk-:', validApiKey.startsWith('sk-'))
+    console.log('  - First 15 chars:', validApiKey.substring(0, 15))
+    console.log('  - Contains sk-proj:', validApiKey.includes('sk-proj'))
     
     // Updated validation for both legacy (sk-...) and project (sk-proj-...) keys
     if (!validApiKey.startsWith('sk-')) {
       console.error('❌ Invalid OpenAI API key format - must start with sk-')
+      console.error('❌ Actual start of key:', validApiKey.substring(0, 10))
       throw new Error('Invalid OpenAI API key format')
     }
     
@@ -99,6 +107,8 @@ async function performTranscriptionWithKey(recordingId: string, openaiApiKey: st
       console.error('❌ Invalid OpenAI API key format - too short:', validApiKey.length)
       throw new Error('Invalid OpenAI API key format')
     }
+    
+    console.log('✅ API key validation passed!')
 
     // Download audio file from Supabase Storage
     console.log('📥 Downloading audio file...')
