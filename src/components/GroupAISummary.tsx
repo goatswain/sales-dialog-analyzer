@@ -61,7 +61,30 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
     
     setLoading(true);
     try {
-      // First check if transcript already exists
+      // First check if we already have saved analysis
+      const { data: existingAnalysis } = await supabase
+        .from('conversation_notes')
+        .select('*')
+        .eq('recording_id', recordingId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (existingAnalysis) {
+        // Use existing saved analysis
+        try {
+          const analysisData = JSON.parse(existingAnalysis.answer);
+          setAnalysis(analysisData);
+        } catch (parseError) {
+          // If parsing fails, treat as plain text
+          setAnalysis({
+            answer: existingAnalysis.answer,
+            summary: existingAnalysis.answer,
+          });
+        }
+      }
+
+      // Check if transcript already exists
       const { data: existingTranscript } = await supabase
         .from('transcripts')
         .select('*')
@@ -98,20 +121,22 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
           segments: Array.isArray(transcriptData.segments) ? transcriptData.segments as unknown as Segment[] : []
         });
 
-        // Generate AI analysis
-        const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-conversation', {
-          body: {
-            recordingId,
-            question: 'Please provide a concise summary highlighting key points, objections raised, responses given, and improvement tips for this conversation.'
+        // Only generate AI analysis if we don't have existing saved analysis
+        if (!existingAnalysis) {
+          const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-conversation', {
+            body: {
+              recordingId,
+              question: 'Please provide a concise summary highlighting key points, objections raised, responses given, and improvement tips for this conversation.'
+            }
+          });
+
+          if (analysisError) {
+            throw new Error(`Analysis failed: ${analysisError.message}`);
           }
-        });
 
-        if (analysisError) {
-          throw new Error(`Analysis failed: ${analysisError.message}`);
-        }
-
-        if (analysisData?.analysis) {
-          setAnalysis(analysisData.analysis);
+          if (analysisData?.analysis) {
+            setAnalysis(analysisData.analysis);
+          }
         }
       }
 

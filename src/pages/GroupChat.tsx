@@ -1081,43 +1081,43 @@ const GroupChat = () => {
                     </div>
                   )}
 
-                   {message.message_type === 'recording' && message.recordings && (
-                     <div className="bg-background/10 rounded p-3 space-y-3">
-                       <div className="text-sm">
-                         <span className="font-medium">
-                           {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Someone'}
-                         </span>
-                         <span className="text-muted-foreground"> shared a recording </span>
-                         <span className="font-medium">
-                           ({Math.floor(message.recordings.duration_seconds / 60)}:{(message.recordings.duration_seconds % 60).toString().padStart(2, '0')} min)
-                         </span>
-                       </div>
-                       
-                       <div className="flex items-center gap-4 text-sm">
-                         <Button
-                           size="sm"
-                           variant="ghost"
-                           onClick={() => toggleAudio(message.recordings!.audio_url, message.id)}
-                           className="gap-2 h-8 px-3"
-                         >
-                           {playingAudio === message.id ? (
-                             <Pause className="h-4 w-4" />
-                           ) : (
-                             <Play className="h-4 w-4" />
-                           )}
-                           🎧 Play
-                         </Button>
-                       </div>
-                       
-                       {message.recording_id && (
-                         <GroupAISummary 
-                           recordingId={message.recording_id}
-                           duration={message.recordings.duration_seconds}
-                           autoGenerate={true}
-                         />
-                       )}
-                     </div>
-                   )}
+                    {message.message_type === 'recording' && message.recordings && (
+                      <div className="bg-background/10 rounded p-3 space-y-3">
+                        <div className="text-sm">
+                          <span className="font-medium">
+                            {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Someone'}
+                          </span>
+                          <span className="text-muted-foreground"> shared a recording </span>
+                          <span className="font-medium">
+                            ({Math.floor(message.recordings.duration_seconds / 60)}:{(message.recordings.duration_seconds % 60).toString().padStart(2, '0')})
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 text-sm">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => toggleAudio(message.recordings!.audio_url, message.id)}
+                            className="gap-1 h-8 px-2 text-xs"
+                          >
+                            {playingAudio === message.id ? (
+                              <Pause className="h-3 w-3" />
+                            ) : (
+                              <Play className="h-3 w-3" />
+                            )}
+                            🎧 {playingAudio === message.id ? 'Pause' : 'Play'}
+                          </Button>
+                        </div>
+                        
+                        {message.recording_id && (
+                          <GroupAISummary 
+                            recordingId={message.recording_id}
+                            duration={message.recordings.duration_seconds}
+                            autoGenerate={true}
+                          />
+                        )}
+                      </div>
+                    )}
                 </div>
               </div>
             ))}
