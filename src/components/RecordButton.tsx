@@ -3,13 +3,26 @@ import { Button } from '@/components/ui/button';
 import { Mic, Square, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthGuard';
+import { Session } from '@supabase/supabase-js';
 
 interface RecordButtonProps {
   onUploadComplete: (recordingId: string) => void;
+  session?: Session | null;
 }
 
-const RecordButton: React.FC<RecordButtonProps> = ({ onUploadComplete }) => {
-  const { session } = useAuth();
+const RecordButton: React.FC<RecordButtonProps> = ({ onUploadComplete, session: propSession }) => {
+  // Try to use AuthGuard context first, fall back to props
+  let authSession: Session | null = null;
+  
+  try {
+    const auth = useAuth();
+    authSession = auth.session;
+  } catch (error) {
+    // Not within AuthGuard context, use props instead
+    authSession = propSession || null;
+  }
+  
+  const session = authSession;
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);

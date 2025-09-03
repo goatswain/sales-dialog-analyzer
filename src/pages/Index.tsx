@@ -82,6 +82,7 @@ const Index = () => {
           onSelectRecording={handleSelectRecording}
           onBackToHome={handleBackToHome}
           onUploadComplete={handleUploadComplete}
+          session={session}
         />
       </ConditionalSubscriptionWrapper>
     );

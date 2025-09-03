@@ -7,6 +7,7 @@ import SubscriptionBanner from '@/components/SubscriptionBanner';
 import TopBar from '@/components/TopBar';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useSubscription } from '@/hooks/useSubscription';
+import { Session } from '@supabase/supabase-js';
 
 interface AuthenticatedDashboardProps {
   currentView: 'home' | 'transcript';
@@ -15,6 +16,7 @@ interface AuthenticatedDashboardProps {
   onSelectRecording: (recordingId: string) => void;
   onBackToHome: () => void;
   onUploadComplete: (recordingId: string) => void;
+  session?: Session | null;
 }
 
 export const AuthenticatedDashboard: React.FC<AuthenticatedDashboardProps> = ({
@@ -23,7 +25,8 @@ export const AuthenticatedDashboard: React.FC<AuthenticatedDashboardProps> = ({
   refreshTrigger,
   onSelectRecording,
   onBackToHome,
-  onUploadComplete
+  onUploadComplete,
+  session
 }) => {
   const { subscriptionData, showSuccessBanner, dismissSuccessBanner } = useSubscription();
   const isProUser = subscriptionData?.subscribed || false;
@@ -67,7 +70,7 @@ export const AuthenticatedDashboard: React.FC<AuthenticatedDashboardProps> = ({
       <div className="container mx-auto p-4 max-w-2xl space-y-8">
         {/* Main Record Button */}
         <div className="text-center py-8">
-          <RecordButton onUploadComplete={onUploadComplete} />
+          <RecordButton onUploadComplete={onUploadComplete} session={session} />
         </div>
 
         {/* Upload Button */}
