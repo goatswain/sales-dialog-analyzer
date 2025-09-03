@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mic, BarChart3, Users, ArrowRight, Star, CheckCircle } from 'lucide-react';
+import { Mic, BarChart3, Users, ArrowRight, Star, CheckCircle, AlertCircle, Settings } from 'lucide-react';
 import { AuthContext } from '@/components/AuthGuard';
 import { AuthenticatedDashboard } from '@/components/AuthenticatedDashboard';
 import { ConditionalSubscriptionWrapper } from '@/components/ConditionalSubscriptionWrapper';
 import { supabase } from '@/integrations/supabase/client';
+import { hasValidApiKey } from '@/components/ApiKeyManager';
 import dashboardPreview from '@/assets/dashboard-preview.jpg';
 
 const Index = () => {

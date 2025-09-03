@@ -3,7 +3,7 @@ project_id = "cuabhynevjfnswaciunm"
 [functions.upload-audio]
 verify_jwt = true
 
-[functions.transcribe-audio]
+[functions.transcribe-audio-v2]
 verify_jwt = true
 
 [functions.analyze-conversation]

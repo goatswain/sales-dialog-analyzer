@@ -17,6 +17,7 @@ import Groups from "./pages/Groups";
 import GroupChat from "./pages/GroupChat";
 import Calls from "./pages/Calls";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import AuthGuard from "./components/AuthGuard";
 import Footer from "./components/Footer";
 import { SubscriptionProvider } from "./hooks/useSubscription";
@@ -46,6 +47,7 @@ const App = () => (
                       <Route path="/groups" element={<Groups />} />
                       <Route path="/groups/:groupId" element={<GroupChat />} />
                       <Route path="/profile" element={<Profile />} />
+                      <Route path="/settings" element={<Settings />} />
                       <Route path="/swain-reports" element={<SwainReports />} />
                       <Route path="/swain-coaching" element={<SwainReports />} />
                       <Route path="/daily-coaching" element={<SwainReports />} />

@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthGuard';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { getStoredApiKey, hasValidApiKey } from '@/components/ApiKeyManager';
 
 interface RecordButtonProps {
   onUploadComplete: (recordingId: string) => void;
@@ -135,63 +136,36 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onUploadComplete, session: 
     }
   };
 
-  const startTranscription = async (recordingId: string, apiKey?: string) => {
-    try {
-      const requestBody: any = { recordingId }
-      
-      // If we have an API key, include it in the request
-      if (apiKey) {
-        requestBody.openaiApiKey = apiKey
-      }
+  const startTranscription = async (recordingId: string) => {
+    // Check if API key is available
+    const apiKey = getStoredApiKey();
+    if (!apiKey || !hasValidApiKey()) {
+      toast({
+        title: "API Key Required",
+        description: "Please set up your OpenAI API key in the settings to enable transcription.",
+        variant: "destructive",
+      });
+      throw new Error('OpenAI API key not configured');
+    }
 
-      console.log('🎤 Calling transcription with body:', requestBody)
+    try {
+      console.log('🎤 Starting transcription with stored API key...')
       
-      // Use direct fetch to get better error handling
-      const response = await fetch(`https://cuabhynevjfnswaciunm.supabase.co/functions/v1/transcribe-audio`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1YWJoeW5ldmpmbnN3YWNpdW5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNTYwMjYsImV4cCI6MjA3MTkzMjAyNn0.waKYoAMsVSeLZ7Xtlt5O2XWm5qtLHvp8FDjqSiXysRc',
+      const { data: result, error } = await supabase.functions.invoke('transcribe-audio-v2', {
+        body: { 
+          recordingId,
+          openaiApiKey: apiKey 
         },
-        body: JSON.stringify(requestBody),
       });
 
-      const result = await response.json();
-      console.log('🎤 Transcription response:', { status: response.status, result })
+      console.log('🎤 Transcription response:', { result, error })
 
-      if (!response.ok) {
-        console.log('🎤 Transcription failed with status:', response.status)
-        console.log('🎤 Error result:', result)
-        
-        // Check if it's an API key error using the actual response
-        if (result.needsApiKey || (result.error && result.error.includes('OpenAI API key'))) {
-          console.log('🎤 Detected API key error, showing prompt...')
-          
-          // Force the prompt to show immediately
-          setTimeout(() => {
-            const userApiKey = prompt('❌ OpenAI API key is missing!\n\nPlease enter your OpenAI API key to enable transcription:')
-            if (userApiKey && userApiKey.trim()) {
-              console.log('🎤 User provided API key, retrying...')
-              // Retry with user-provided API key
-              startTranscription(recordingId, userApiKey.trim()).catch(console.error)
-            } else {
-              console.log('🎤 User cancelled or provided empty key')
-              toast({
-                title: "API Key Required",
-                description: "OpenAI API key is required for transcription",
-                variant: "destructive",
-              });
-            }
-          }, 100)
-          
-          return // Don't throw error, we're handling it with the prompt
-        }
-        
-        throw new Error(result.error || `Transcription failed with status ${response.status}`);
+      if (error) {
+        console.error('🎤 Transcription error:', error)
+        throw new Error(error.message || 'Transcription failed');
       }
-      
-      if (result.success) {
+
+      if (result?.success) {
         toast({
           title: "Transcription Started",
           description: "Your audio is being transcribed in the background...",
@@ -200,8 +174,8 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onUploadComplete, session: 
     } catch (error) {
       console.error('Transcription failed:', error);
       toast({
-        title: "Transcription Failed",
-        description: "Could not start transcription. Please try again.",
+        title: "Transcription Failed", 
+        description: error.message || "Could not start transcription. Please try again.",
         variant: "destructive",
       });
       throw error;

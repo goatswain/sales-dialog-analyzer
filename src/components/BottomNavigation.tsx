@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Phone, Users, User } from 'lucide-react';
+import { Home, Phone, Users, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const BottomNavigation = () => {
@@ -12,6 +12,7 @@ const BottomNavigation = () => {
     { path: '/calls', icon: Phone, label: 'Calls' },
     { path: '/groups', icon: Users, label: 'Groups' },
     { path: '/profile', icon: User, label: 'Profile' },
+    { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
