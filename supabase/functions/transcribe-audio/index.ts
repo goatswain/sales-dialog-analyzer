@@ -197,7 +197,7 @@ serve(async (req) => {
   }
 
   try {
-    // Get authorization header
+    // Since verify_jwt = true, we can get user from request context
     const authHeader = req.headers.get('authorization')
     if (!authHeader) {
       return new Response(
@@ -206,9 +206,10 @@ serve(async (req) => {
       )
     }
 
+    // Create client for API calls (service role for background tasks)
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '', // Use anon key for user requests
       {
         global: {
           headers: { authorization: authHeader },
@@ -216,17 +217,18 @@ serve(async (req) => {
       }
     )
 
-    // Use proper Supabase auth verification (verify_jwt = true handles JWT validation)
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''))
+    // Get the authenticated user (verify_jwt = true means user is already authenticated)
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
     
-    if (authError || !user) {
-      console.error('Authentication error:', authError)
+    if (userError || !user) {
+      console.error('Failed to get authenticated user:', userError)
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Authentication failed' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
+    console.log('✅ User authenticated:', user.id)
     const userId = user.id
 
     const { recordingId, openaiApiKey } = await req.json()
