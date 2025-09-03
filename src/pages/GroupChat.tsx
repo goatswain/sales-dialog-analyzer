@@ -356,34 +356,98 @@ const GroupChat = () => {
       setPlayingAudio(null);
       setCurrentAudio(null);
     } else {
-      // Stop any existing audio first
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-      }
-      
-      // Play new audio
-      const audio = new Audio(audioUrl);
-      audio.onended = () => {
-        setPlayingAudio(null);
-        setCurrentAudio(null);
-      };
-      audio.onerror = () => {
+      try {
+        // Stop any existing audio first
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        }
+        
+        // Play new audio with mobile optimizations
+        const audio = new Audio();
+        
+        // Mobile-specific settings
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous';
+        
+        // Set up event handlers before setting src
+        audio.onloadstart = () => {
+          console.log('Audio loading started');
+        };
+        
+        audio.oncanplay = () => {
+          console.log('Audio can play');
+        };
+        
+        audio.onended = () => {
+          setPlayingAudio(null);
+          setCurrentAudio(null);
+        };
+        
+        audio.onerror = (e) => {
+          console.error('Audio error:', e);
+          setPlayingAudio(null);
+          setCurrentAudio(null);
+          toast({
+            title: 'Error',
+            description: 'Failed to play audio recording. Please try again.',
+            variant: 'destructive'
+          });
+        };
+        
+        audio.onabort = () => {
+          console.log('Audio playback aborted');
+        };
+        
+        audio.onstalled = () => {
+          console.log('Audio stalled');
+        };
+        
+        // Set audio source
+        audio.src = audioUrl;
+        
+        setCurrentAudio(audio);
+        setPlayingAudio(messageId);
+        
+        // Load and play with better mobile support
+        await audio.load();
+        
+        // For mobile devices, we need to handle play() promise properly
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+          await playPromise.catch((error) => {
+            console.error('Play failed:', error);
+            setPlayingAudio(null);
+            setCurrentAudio(null);
+            
+            // Check if it's an interaction error (common on mobile)
+            if (error.name === 'NotAllowedError') {
+              toast({
+                title: 'Audio Blocked',
+                description: 'Please tap the play button to start audio playback.',
+                variant: 'destructive'
+              });
+            } else {
+              toast({
+                title: 'Playback Error', 
+                description: 'Unable to play audio. Please check your connection.',
+                variant: 'destructive'
+              });
+            }
+          });
+        }
+        
+      } catch (error) {
+        console.error('Toggle audio error:', error);
         setPlayingAudio(null);
         setCurrentAudio(null);
         toast({
           title: 'Error',
-          description: 'Failed to play audio recording',
+          description: 'Failed to initialize audio player',
           variant: 'destructive'
         });
-      };
-      
-      setCurrentAudio(audio);
-      setPlayingAudio(messageId);
-      audio.play().catch(() => {
-        setPlayingAudio(null);
-        setCurrentAudio(null);
-      });
+      }
     }
   };
 

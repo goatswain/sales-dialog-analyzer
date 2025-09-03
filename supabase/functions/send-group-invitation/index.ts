@@ -71,7 +71,7 @@ const handler = async (req: Request): Promise<Response> => {
     const inviterEmail = profile?.email || user.email || 'SwainAI Team';
     
     // Send invitation email
-    const inviteUrl = `https://cuabhynevjfnswaciunm.supabase.co/functions/v1/accept-group-invitation?token=${invitationToken}`;
+    const inviteUrl = `https://swainai.com/auth?invite=${invitationToken}&group=${encodeURIComponent(groupName)}`;
     
     const { error: emailError } = await resend.emails.send({
       from: 'SwainAI <noreply@swainai.com>',
