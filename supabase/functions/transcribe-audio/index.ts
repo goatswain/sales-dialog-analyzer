@@ -197,8 +197,7 @@ serve(async (req) => {
   }
 
   try {
-    // Since verify_jwt = true, JWT is already validated by Supabase
-    // We can use the auth header directly with the anon key client
+    // Get JWT token from Authorization header
     const authHeader = req.headers.get('authorization')
     if (!authHeader) {
       return new Response(
@@ -207,24 +206,27 @@ serve(async (req) => {
       )
     }
 
-    // Create client with anon key for user-scoped operations
+    // Extract JWT token (remove "Bearer " prefix)
+    const token = authHeader.replace('Bearer ', '')
+
+    // Create Supabase client with user context for RLS
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: { authorization: authHeader },
+          headers: { Authorization: authHeader },
         },
       }
     )
 
-    // Get the authenticated user (JWT is already validated by verify_jwt = true)
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    // Get user from JWT token (this is the correct way when verify_jwt = true)
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
     
     if (userError || !user) {
-      console.error('Failed to get authenticated user:', userError)
+      console.error('Failed to get user from token:', userError)
       return new Response(
-        JSON.stringify({ error: 'User not found' }),
+        JSON.stringify({ error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
