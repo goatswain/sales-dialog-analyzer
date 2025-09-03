@@ -8,20 +8,18 @@ export const SecurityHeaders = () => {
       const cspMeta = document.createElement('meta');
       cspMeta.httpEquiv = 'Content-Security-Policy';
       cspMeta.content = `
-        default-src 'self' https://cuabhynevjfnswaciunm.supabase.co;
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-        font-src 'self' https://fonts.gstatic.com;
-        img-src 'self' data: https: blob:;
-        media-src 'self' https://cuabhynevjfnswaciunm.supabase.co blob:;
-        connect-src 'self' https://cuabhynevjfnswaciunm.supabase.co https://api.openai.com https://api.stripe.com;
-        frame-src 'self' https://js.stripe.com;
+        default-src 'self' https://cuabhynevjfnswaciunm.supabase.co https://*.lovableproject.com;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net https://*.lovableproject.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.lovableproject.com;
+        font-src 'self' https://fonts.gstatic.com https://*.lovableproject.com;
+        img-src 'self' data: https: blob: https://*.lovableproject.com;
+        media-src 'self' https://cuabhynevjfnswaciunm.supabase.co blob: https://*.lovableproject.com;
+        connect-src 'self' https://cuabhynevjfnswaciunm.supabase.co https://api.openai.com https://api.stripe.com https://*.lovableproject.com wss://cuabhynevjfnswaciunm.supabase.co;
+        frame-src 'self' https://js.stripe.com https://*.lovableproject.com;
         object-src 'none';
         base-uri 'self';
         form-action 'self';
         frame-ancestors 'none';
-        upgrade-insecure-requests;
-        block-all-mixed-content;
       `.replace(/\s+/g, ' ').trim();
       document.head.appendChild(cspMeta);
     }
