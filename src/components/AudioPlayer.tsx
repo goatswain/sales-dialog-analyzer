@@ -214,6 +214,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           src={audioUrl}
           playsInline
           webkit-playsinline="true"
+          onLoadStart={() => console.log('Audio load started for:', audioUrl)}
+          onCanPlay={() => console.log('Audio can play for:', audioUrl)}
+          onError={(e) => console.error('Audio element error:', e, 'URL:', audioUrl)}
         />
         <Button
           variant="ghost"
@@ -257,6 +260,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           src={audioUrl}
           playsInline
           webkit-playsinline="true"
+          onLoadStart={() => console.log('Audio load started for:', audioUrl)}
+          onCanPlay={() => console.log('Audio can play for:', audioUrl)}
+          onError={(e) => console.error('Audio element error:', e, 'URL:', audioUrl)}
         />
         
         {title && (
