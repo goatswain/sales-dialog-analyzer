@@ -9,6 +9,7 @@ import { ArrowLeft, Send, Copy, MessageSquare, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import AudioPlayer from '@/components/AudioPlayer';
+import SimpleAudioPlayer from '@/components/SimpleAudioPlayer';
 
 interface Segment {
   start_time: number;
@@ -227,13 +228,26 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
           </CardHeader>
           <CardContent>
             {/* Audio Player */}
-            <div className="mb-4">
-              <AudioPlayer
-                audioUrl={recording.audio_url}
-                title={recording.title}
-                duration={recording.duration_seconds}
-                className="bg-muted/50"
-              />
+            <div className="mb-4 space-y-4">
+              {/* Original AudioPlayer */}
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Custom Audio Player:</p>
+                <AudioPlayer
+                  audioUrl={recording.audio_url}
+                  title={recording.title}
+                  duration={recording.duration_seconds}
+                  className="bg-muted/50"
+                />
+              </div>
+              
+              {/* Fallback SimpleAudioPlayer */}
+              <div>
+                <SimpleAudioPlayer
+                  audioUrl={recording.audio_url}
+                  title={recording.title}
+                  className="bg-yellow-50 border-yellow-200"
+                />
+              </div>
             </div>
 
             {/* Transcript Content */}

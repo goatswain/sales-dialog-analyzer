@@ -36,23 +36,60 @@ export const AuthenticatedDashboard: React.FC<AuthenticatedDashboardProps> = ({
   // Test audio function
   const testAudio = () => {
     console.log('🔥 AUDIO TEST BUTTON CLICKED!');
-    alert('Audio test clicked! Check console for logs.');
     
     const testUrl = 'https://cuabhynevjfnswaciunm.supabase.co/storage/v1/object/public/audio-recordings/audio-2025-09-02T03-28-33-678Z-recording-1756783712038.wav';
     console.log('Testing audio URL:', testUrl);
     
-    const audio = new Audio(testUrl);
+    // Try multiple approaches
     
-    audio.onloadstart = () => console.log('✅ Audio loadstart');
-    audio.oncanplay = () => console.log('✅ Audio canplay');
-    audio.onplay = () => console.log('✅ Audio playing');
-    audio.onerror = (e) => console.error('❌ Audio error:', e);
+    // Method 1: Simple Audio object
+    console.log('--- Method 1: Simple Audio object ---');
+    const audio1 = new Audio();
+    audio1.onloadstart = () => console.log('✅ Method 1: loadstart');
+    audio1.oncanplaythrough = () => console.log('✅ Method 1: canplaythrough');
+    audio1.onplay = () => console.log('✅ Method 1: playing');
+    audio1.onerror = (e) => console.error('❌ Method 1 error:', e, audio1.error);
+    audio1.src = testUrl;
     
-    audio.play().then(() => {
-      console.log('✅ Audio play promise resolved');
-    }).catch(err => {
-      console.error('❌ Audio play promise rejected:', err);
-    });
+    setTimeout(() => {
+      audio1.play().then(() => {
+        console.log('✅ Method 1: play promise resolved');
+        setTimeout(() => audio1.pause(), 2000);
+      }).catch(err => {
+        console.error('❌ Method 1 play promise rejected:', err);
+      });
+    }, 1000);
+    
+    // Method 2: Create native audio element
+    console.log('--- Method 2: Native HTML audio element ---');
+    const audio2 = document.createElement('audio');
+    audio2.controls = true;
+    audio2.src = testUrl;
+    audio2.style.cssText = 'position:fixed;top:10px;right:10px;z-index:9999;';
+    audio2.onloadstart = () => console.log('✅ Method 2: loadstart');
+    audio2.oncanplaythrough = () => console.log('✅ Method 2: canplaythrough');
+    audio2.onerror = (e) => console.error('❌ Method 2 error:', e, audio2.error);
+    
+    document.body.appendChild(audio2);
+    
+    // Remove the test element after 30 seconds
+    setTimeout(() => {
+      if (document.body.contains(audio2)) {
+        document.body.removeChild(audio2);
+      }
+    }, 30000);
+    
+    // Method 3: Direct fetch test
+    console.log('--- Method 3: Fetch test ---');
+    fetch(testUrl, { method: 'HEAD' })
+      .then(response => {
+        console.log('✅ Method 3: Fetch successful', response.status, response.headers);
+      })
+      .catch(err => {
+        console.error('❌ Method 3: Fetch failed:', err);
+      });
+      
+    alert('Audio test started! Check console and look for native audio controls in top-right corner');
   };
 
   if (currentView === 'transcript' && selectedRecordingId) {
