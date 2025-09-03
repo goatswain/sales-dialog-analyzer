@@ -5,10 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Send, Copy, MessageSquare, Loader2 } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Send, Copy, MessageSquare, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import AudioPlayer from '@/components/AudioPlayer';
 
 interface Segment {
   start_time: number;
@@ -56,7 +55,10 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
   const [question, setQuestion] = useState('');
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
   
+  const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -138,12 +140,25 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
   };
 
   const handleTimestampClick = (timeInSeconds: number) => {
-    // This will be handled by the AudioPlayer component through its seek functionality
-    console.log('Timestamp clicked:', timeInSeconds);
+    if (audioRef.current) {
+      audioRef.current.currentTime = timeInSeconds;
+      if (!isPlaying) {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+    }
   };
 
-  // Remove the old play/pause handler since AudioPlayer handles this
-  // const handlePlayPause = () => { ... }
+  const handlePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -224,13 +239,23 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
           </CardHeader>
           <CardContent>
             {/* Audio Player */}
-            <div className="mb-4">
-              <AudioPlayer
-                audioUrl={recording.audio_url}
-                title={recording.title}
-                duration={recording.duration_seconds}
-                className="bg-muted/50"
+            <div className="mb-4 p-4 bg-muted rounded-lg">
+              <audio
+                ref={audioRef}
+                src={recording.audio_url}
+                onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                onEnded={() => setIsPlaying(false)}
+                className="w-full mb-2"
+                controls
               />
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>{formatTime(currentTime)}</span>
+                <Button variant="ghost" size="sm" onClick={handlePlayPause}>
+                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </Button>
+              </div>
             </div>
 
             {/* Transcript Content */}

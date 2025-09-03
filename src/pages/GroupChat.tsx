@@ -21,6 +21,8 @@ import {
   Mail, 
   Settings,
   Mic,
+  Play,
+  Pause,
   Clock,
   Edit3,
   MoreVertical,
@@ -34,7 +36,6 @@ import { toast } from '@/hooks/use-toast';
 import TopBar from '@/components/TopBar';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useSubscription } from '@/hooks/useSubscription';
-import AudioPlayer from '@/components/AudioPlayer';
 
 interface Group {
   id: string;
@@ -90,6 +91,7 @@ const GroupChat = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [renaming, setRenaming] = useState(false);
@@ -137,9 +139,12 @@ const GroupChat = () => {
   // Cleanup audio when component unmounts
   useEffect(() => {
     return () => {
-      // Audio cleanup is now handled by the AudioPlayer component
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
     };
-  }, []);
+  }, [currentAudio]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -343,19 +348,106 @@ const GroupChat = () => {
     }
   };
 
-  const handleAudioPlay = (messageId: string) => {
-    setPlayingAudio(messageId);
-  };
-
-  const handleAudioPause = (messageId: string) => {
-    if (playingAudio === messageId) {
+  const toggleAudio = async (audioUrl: string, messageId: string) => {
+    if (playingAudio === messageId && currentAudio) {
+      // Stop current audio
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
       setPlayingAudio(null);
-    }
-  };
-
-  const handleAudioEnded = (messageId: string) => {
-    if (playingAudio === messageId) {
-      setPlayingAudio(null);
+      setCurrentAudio(null);
+    } else {
+      try {
+        // Stop any existing audio first
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        }
+        
+        // Play new audio with mobile optimizations
+        const audio = new Audio();
+        
+        // Mobile-specific settings
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous';
+        
+        // Set up event handlers before setting src
+        audio.onloadstart = () => {
+          console.log('Audio loading started');
+        };
+        
+        audio.oncanplay = () => {
+          console.log('Audio can play');
+        };
+        
+        audio.onended = () => {
+          setPlayingAudio(null);
+          setCurrentAudio(null);
+        };
+        
+        audio.onerror = (e) => {
+          console.error('Audio error:', e);
+          setPlayingAudio(null);
+          setCurrentAudio(null);
+          toast({
+            title: 'Error',
+            description: 'Failed to play audio recording. Please try again.',
+            variant: 'destructive'
+          });
+        };
+        
+        audio.onabort = () => {
+          console.log('Audio playback aborted');
+        };
+        
+        audio.onstalled = () => {
+          console.log('Audio stalled');
+        };
+        
+        // Set audio source
+        audio.src = audioUrl;
+        
+        setCurrentAudio(audio);
+        setPlayingAudio(messageId);
+        
+        // Load and play with better mobile support
+        await audio.load();
+        
+        // For mobile devices, we need to handle play() promise properly
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+          await playPromise.catch((error) => {
+            console.error('Play failed:', error);
+            setPlayingAudio(null);
+            setCurrentAudio(null);
+            
+            // Check if it's an interaction error (common on mobile)
+            if (error.name === 'NotAllowedError') {
+              toast({
+                title: 'Audio Blocked',
+                description: 'Please tap the play button to start audio playback.',
+                variant: 'destructive'
+              });
+            } else {
+              toast({
+                title: 'Playback Error', 
+                description: 'Unable to play audio. Please check your connection.',
+                variant: 'destructive'
+              });
+            }
+          });
+        }
+        
+      } catch (error) {
+        console.error('Toggle audio error:', error);
+        setPlayingAudio(null);
+        setCurrentAudio(null);
+        toast({
+          title: 'Error',
+          description: 'Failed to initialize audio player',
+          variant: 'destructive'
+        });
+      }
     }
   };
 
@@ -944,73 +1036,88 @@ const GroupChat = () => {
                      <p className="text-xs italic text-center">{message.content}</p>
                    )}
 
-                   {message.message_type === 'recording_share' && (
-                     <div className="bg-background/10 rounded p-2 space-y-2">
-                       <div className="flex items-center gap-2">
-                         <Mic className="h-4 w-4" />
-                         <span className="text-sm font-medium">
-                           Shared recording
-                         </span>
-                       </div>
-                       <p className="text-xs opacity-75">{message.content}</p>
-                       
-                       {message.audio_url && (
-                         <AudioPlayer
-                           audioUrl={message.audio_url}
-                           duration={message.duration_seconds}
-                           onPlay={() => handleAudioPlay(message.id)}
-                           onPause={() => handleAudioPause(message.id)}
-                           onEnded={() => handleAudioEnded(message.id)}
-                           compact={true}
-                           className="bg-background/20 rounded"
-                         />
-                       )}
-                       
-                       <div className="text-xs opacity-75 mt-1">
-                         Shared by {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Unknown'}
-                       </div>
-                       {message.recording_id && message.duration_seconds && (
-                         <GroupAISummary 
-                           recordingId={message.recording_id}
-                           duration={message.duration_seconds}
-                           autoGenerate={message.duration_seconds < 120}
-                         />
-                       )}
-                     </div>
-                   )}
+                  {message.message_type === 'recording_share' && (
+                    <div className="bg-background/10 rounded p-2 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Mic className="h-4 w-4" />
+                        <span className="text-sm font-medium">
+                          Shared recording
+                        </span>
+                      </div>
+                      <p className="text-xs opacity-75">{message.content}</p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => toggleAudio(message.audio_url!, message.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {playingAudio === message.id ? (
+                            <Pause className="h-4 w-4" />
+                          ) : (
+                            <Play className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <div className="flex items-center gap-1 text-xs opacity-75">
+                          <Clock className="h-3 w-3" />
+                          {message.duration_seconds && (
+                            <>
+                              {Math.floor(message.duration_seconds / 60)}:
+                              {(message.duration_seconds % 60).toString().padStart(2, '0')}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs opacity-75 mt-1">
+                        Shared by {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Unknown'}
+                      </div>
+                      {message.recording_id && message.duration_seconds && (
+                        <GroupAISummary 
+                          recordingId={message.recording_id}
+                          duration={message.duration_seconds}
+                          autoGenerate={message.duration_seconds < 120}
+                        />
+                      )}
+                    </div>
+                  )}
 
-                     {message.message_type === 'recording' && message.recordings && (
-                       <div className="bg-background/10 rounded p-3 space-y-3">
-                         <div className="text-sm">
-                           <span className="font-medium">
-                             {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Someone'}
-                           </span>
-                           <span className="text-muted-foreground"> shared a recording </span>
-                           <span className="font-medium">
-                             ({Math.floor(message.recordings.duration_seconds / 60)}:{(message.recordings.duration_seconds % 60).toString().padStart(2, '0')})
-                           </span>
-                         </div>
-                         
-                         <AudioPlayer
-                           audioUrl={message.recordings.audio_url}
-                           title={`Recording • ${Math.floor(message.recordings.duration_seconds / 60)}:${(message.recordings.duration_seconds % 60).toString().padStart(2, '0')}`}
-                           duration={message.recordings.duration_seconds}
-                           onPlay={() => handleAudioPlay(message.id)}
-                           onPause={() => handleAudioPause(message.id)}
-                           onEnded={() => handleAudioEnded(message.id)}
-                           compact={true}
-                           className="bg-background/20"
-                         />
-                         
-                         {message.recording_id && (
-                           <GroupAISummary 
-                             recordingId={message.recording_id}
-                             duration={message.recordings.duration_seconds}
-                             autoGenerate={true}
-                           />
-                         )}
-                       </div>
-                     )}
+                    {message.message_type === 'recording' && message.recordings && (
+                      <div className="bg-background/10 rounded p-3 space-y-3">
+                        <div className="text-sm">
+                          <span className="font-medium">
+                            {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Someone'}
+                          </span>
+                          <span className="text-muted-foreground"> shared a recording </span>
+                          <span className="font-medium">
+                            ({Math.floor(message.recordings.duration_seconds / 60)}:{(message.recordings.duration_seconds % 60).toString().padStart(2, '0')})
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 text-sm">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => toggleAudio(message.recordings!.audio_url, message.id)}
+                            className="gap-1 h-8 px-2 text-xs"
+                          >
+                            {playingAudio === message.id ? (
+                              <Pause className="h-3 w-3" />
+                            ) : (
+                              <Play className="h-3 w-3" />
+                            )}
+                            🎧 {playingAudio === message.id ? 'Pause' : 'Play'}
+                          </Button>
+                        </div>
+                        
+                        {message.recording_id && (
+                          <GroupAISummary 
+                            recordingId={message.recording_id}
+                            duration={message.recordings.duration_seconds}
+                            autoGenerate={true}
+                          />
+                        )}
+                      </div>
+                    )}
                 </div>
               </div>
             ))}
