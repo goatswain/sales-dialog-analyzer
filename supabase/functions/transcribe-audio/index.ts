@@ -88,8 +88,15 @@ async function performTranscriptionWithKey(recordingId: string, openaiApiKey: st
     const validApiKey = openaiApiKey.trim()
     console.log('✅ API key validation - Length:', validApiKey.length, 'Starts with sk-:', validApiKey.startsWith('sk-'))
     
-    if (!validApiKey.startsWith('sk-') || validApiKey.length < 40) {
-      console.error('❌ Invalid OpenAI API key format - length:', validApiKey.length, 'starts with sk-:', validApiKey.startsWith('sk-'))
+    // Updated validation for both legacy (sk-...) and project (sk-proj-...) keys
+    if (!validApiKey.startsWith('sk-')) {
+      console.error('❌ Invalid OpenAI API key format - must start with sk-')
+      throw new Error('Invalid OpenAI API key format')
+    }
+    
+    // Legacy keys are ~48 chars, project keys are ~164 chars
+    if (validApiKey.length < 40) {
+      console.error('❌ Invalid OpenAI API key format - too short:', validApiKey.length)
       throw new Error('Invalid OpenAI API key format')
     }
 
