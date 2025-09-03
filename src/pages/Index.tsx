@@ -70,7 +70,11 @@ const Index = () => {
   // Show authenticated dashboard for logged-in users
   if (session) {
     return (
-      <ConditionalSubscriptionWrapper isAuthenticated={!!session}>
+      <ConditionalSubscriptionWrapper 
+        isAuthenticated={!!session}
+        user={user}
+        session={session}
+      >
         <AuthenticatedDashboard
           currentView={currentView}
           selectedRecordingId={selectedRecordingId}
