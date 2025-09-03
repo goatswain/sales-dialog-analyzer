@@ -30,8 +30,9 @@ const App = () => (
       <BrowserRouter>
         <div className="flex flex-col min-h-screen">
           <Routes>
-            {/* Auth route - outside AuthGuard so unauthenticated users can access */}
+            {/* Public routes - outside AuthGuard */}
             <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<Index />} />
             
             {/* Protected routes - wrapped in AuthGuard */}
             <Route path="/*" element={
@@ -39,7 +40,6 @@ const App = () => (
                 <SubscriptionProvider>
                   <ProfileGuard>
                     <Routes>
-                      <Route path="/" element={<Index />} />
                       <Route path="/calls" element={<Calls />} />
                       <Route path="/groups" element={<Groups />} />
                       <Route path="/groups/:groupId" element={<GroupChat />} />
