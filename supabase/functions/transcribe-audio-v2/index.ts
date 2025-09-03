@@ -51,7 +51,7 @@ serve(async (req) => {
     console.log('✅ User authenticated:', user.id)
 
     // Parse request body
-    const { recordingId, openaiApiKey } = await req.json()
+    const { recordingId, apiKey } = await req.json()
     
     if (!recordingId) {
       return new Response(
@@ -60,7 +60,7 @@ serve(async (req) => {
       )
     }
 
-    if (!openaiApiKey || openaiApiKey.trim() === '') {
+    if (!apiKey || apiKey.trim() === '') {
       return new Response(
         JSON.stringify({ 
           error: 'OpenAI API key required', 
@@ -74,7 +74,7 @@ serve(async (req) => {
     console.log('🎬 Starting transcription for recording:', recordingId)
 
     // Start background transcription
-    EdgeRuntime.waitUntil(performTranscription(recordingId, openaiApiKey.trim(), user.id))
+    EdgeRuntime.waitUntil(performTranscription(recordingId, apiKey.trim(), user.id))
 
     // Return immediate response
     return new Response(
