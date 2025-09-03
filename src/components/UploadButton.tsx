@@ -3,13 +3,26 @@ import { Button } from '@/components/ui/button';
 import { Upload, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthGuard';
+import { Session } from '@supabase/supabase-js';
 
 interface UploadButtonProps {
   onUploadComplete: (recordingId: string) => void;
+  session?: Session | null;
 }
 
-const UploadButton: React.FC<UploadButtonProps> = ({ onUploadComplete }) => {
-  const { session } = useAuth();
+const UploadButton: React.FC<UploadButtonProps> = ({ onUploadComplete, session: propSession }) => {
+  // Try to use AuthGuard context first, fall back to props
+  let authSession: Session | null = null;
+  
+  try {
+    const auth = useAuth();
+    authSession = auth.session;
+  } catch (error) {
+    // Not within AuthGuard context, use props instead
+    authSession = propSession || null;
+  }
+  
+  const session = authSession;
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();

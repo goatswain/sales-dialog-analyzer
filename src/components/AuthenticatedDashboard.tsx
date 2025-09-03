@@ -75,7 +75,7 @@ export const AuthenticatedDashboard: React.FC<AuthenticatedDashboardProps> = ({
 
         {/* Upload Button */}
         <div className="flex justify-center">
-          <UploadButton onUploadComplete={onUploadComplete} />
+          <UploadButton onUploadComplete={onUploadComplete} session={session} />
         </div>
 
         {/* Recent Calls */}
