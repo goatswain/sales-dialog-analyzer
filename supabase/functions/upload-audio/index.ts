@@ -4,7 +4,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
 }
+
+// Maximum file size: 50MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -57,6 +64,23 @@ serve(async (req) => {
     if (!audioFile) {
       return new Response(
         JSON.stringify({ error: 'No audio file provided' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Validate file size
+    if (audioFile.size > MAX_FILE_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'File size exceeds maximum allowed size (50MB)' }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Validate file type
+    const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/flac', 'audio/ogg', 'audio/aac'];
+    if (!allowedTypes.includes(audioFile.type)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid file type. Only audio files are allowed.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

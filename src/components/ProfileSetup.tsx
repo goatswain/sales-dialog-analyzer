@@ -75,6 +75,25 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ user, onComplete, is
       return;
     }
 
+    // Input validation
+    if (displayName.trim().length < 2) {
+      toast({
+        title: 'Error',
+        description: 'Full name must be at least 2 characters',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (displayName.trim().length > 50) {
+      toast({
+        title: 'Error',
+        description: 'Full name must be less than 50 characters',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const { error } = await supabase
@@ -158,6 +177,7 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ user, onComplete, is
               placeholder="Enter your full name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
+              maxLength={50}
               required
             />
           </div>
