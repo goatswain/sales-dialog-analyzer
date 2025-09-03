@@ -91,6 +91,7 @@ const GroupChat = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [renaming, setRenaming] = useState(false);
@@ -134,6 +135,16 @@ const GroupChat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Cleanup audio when component unmounts
+  useEffect(() => {
+    return () => {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+    };
+  }, [currentAudio]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -338,15 +349,41 @@ const GroupChat = () => {
   };
 
   const toggleAudio = async (audioUrl: string, messageId: string) => {
-    if (playingAudio === messageId) {
-      // Stop audio
+    if (playingAudio === messageId && currentAudio) {
+      // Stop current audio
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
       setPlayingAudio(null);
+      setCurrentAudio(null);
     } else {
-      // Play audio
-      setPlayingAudio(messageId);
+      // Stop any existing audio first
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+      
+      // Play new audio
       const audio = new Audio(audioUrl);
-      audio.onended = () => setPlayingAudio(null);
-      audio.play();
+      audio.onended = () => {
+        setPlayingAudio(null);
+        setCurrentAudio(null);
+      };
+      audio.onerror = () => {
+        setPlayingAudio(null);
+        setCurrentAudio(null);
+        toast({
+          title: 'Error',
+          description: 'Failed to play audio recording',
+          variant: 'destructive'
+        });
+      };
+      
+      setCurrentAudio(audio);
+      setPlayingAudio(messageId);
+      audio.play().catch(() => {
+        setPlayingAudio(null);
+        setCurrentAudio(null);
+      });
     }
   };
 
@@ -980,45 +1017,43 @@ const GroupChat = () => {
                     </div>
                   )}
 
-                  {message.message_type === 'recording' && message.recordings && (
-                    <div className="bg-background/10 rounded p-2 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Mic className="h-4 w-4" />
-                        <span className="text-sm font-medium">
-                          {message.recordings.title || 'Audio Recording'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => toggleAudio(message.recordings!.audio_url, message.id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {playingAudio === message.id ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <div className="flex items-center gap-1 text-xs opacity-75">
-                          <Clock className="h-3 w-3" />
-                          {Math.floor(message.recordings.duration_seconds / 60)}:
-                          {(message.recordings.duration_seconds % 60).toString().padStart(2, '0')}
-                        </div>
-                      </div>
-                      <div className="text-xs opacity-75 mt-1">
-                        Shared by {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Unknown'}
-                      </div>
-                      {message.recording_id && (
-                        <GroupAISummary 
-                          recordingId={message.recording_id}
-                          duration={message.recordings.duration_seconds}
-                          autoGenerate={message.recordings.duration_seconds < 120}
-                        />
-                      )}
-                    </div>
-                  )}
+                   {message.message_type === 'recording' && message.recordings && (
+                     <div className="bg-background/10 rounded p-3 space-y-3">
+                       <div className="text-sm">
+                         <span className="font-medium">
+                           {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Someone'}
+                         </span>
+                         <span className="text-muted-foreground"> shared a recording </span>
+                         <span className="font-medium">
+                           ({Math.floor(message.recordings.duration_seconds / 60)}:{(message.recordings.duration_seconds % 60).toString().padStart(2, '0')} min)
+                         </span>
+                       </div>
+                       
+                       <div className="flex items-center gap-4 text-sm">
+                         <Button
+                           size="sm"
+                           variant="ghost"
+                           onClick={() => toggleAudio(message.recordings!.audio_url, message.id)}
+                           className="gap-2 h-8 px-3"
+                         >
+                           {playingAudio === message.id ? (
+                             <Pause className="h-4 w-4" />
+                           ) : (
+                             <Play className="h-4 w-4" />
+                           )}
+                           🎧 Play
+                         </Button>
+                       </div>
+                       
+                       {message.recording_id && (
+                         <GroupAISummary 
+                           recordingId={message.recording_id}
+                           duration={message.recordings.duration_seconds}
+                           autoGenerate={true}
+                         />
+                       )}
+                     </div>
+                   )}
                 </div>
               </div>
             ))}

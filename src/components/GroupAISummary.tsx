@@ -48,7 +48,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
   const [hasGenerated, setHasGenerated] = useState(false);
   const { toast } = useToast();
 
-  const shouldAutoGenerate = autoGenerate && duration < 120; // Less than 2 minutes
+  const shouldAutoGenerate = autoGenerate; // Always generate if autoGenerate is true
 
   React.useEffect(() => {
     if (shouldAutoGenerate && !hasGenerated) {
@@ -177,24 +177,27 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                 <ChevronRight className="h-3 w-3" />
               )}
               <FileText className="h-3 w-3" />
-              <span className="text-xs">View Transcript</span>
+              <span className="text-xs">📜 Transcript (expand)</span>
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <Card className="p-3 bg-muted/30">
               <div className="text-xs space-y-2">
-                {transcript.segments && transcript.segments.length > 0 ? (
-                  transcript.segments.map((segment, index) => (
-                    <div key={index} className="flex gap-2">
-                      <span className="text-muted-foreground font-mono min-w-[45px]">
-                        {Math.floor(segment.start / 60)}:{(segment.start % 60).toFixed(0).padStart(2, '0')}
-                      </span>
-                      <span className="text-foreground">{segment.text}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-foreground">{transcript.text}</p>
-                )}
+                 {transcript.segments && transcript.segments.length > 0 ? (
+                   transcript.segments.map((segment, index) => (
+                     <div key={index} className="flex gap-2 mb-1">
+                       <span className="text-muted-foreground font-mono min-w-[45px]">
+                         {Math.floor(segment.start / 60)}:{(segment.start % 60).toFixed(0).padStart(2, '0')}
+                       </span>
+                       <span className="font-medium text-primary min-w-[70px]">
+                         {segment.speaker || `Speaker ${(index % 2) + 1}`}:
+                       </span>
+                       <span className="text-foreground">{segment.text}</span>
+                     </div>
+                   ))
+                 ) : (
+                   <p className="text-foreground">{transcript.text}</p>
+                 )}
               </div>
             </Card>
           </CollapsibleContent>
@@ -212,7 +215,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                 <ChevronRight className="h-3 w-3" />
               )}
               <Zap className="h-3 w-3 text-primary" />
-              <span className="text-xs">View AI Summary</span>
+              <span className="text-xs">✨ Summary (expand)</span>
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent>
