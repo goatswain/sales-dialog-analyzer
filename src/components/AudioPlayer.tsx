@@ -49,8 +49,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
     console.log('AudioPlayer: Setting up audio element with URL:', audioUrl);
 
-    // Simple configuration - remove problematic settings
-    audio.preload = 'metadata';
+    // Very simple configuration - no preload to avoid CORS issues
+    audio.preload = 'none';
     
     // Mobile-specific attributes for better compatibility
     if (isMobile) {
@@ -58,9 +58,18 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       audio.setAttribute('webkit-playsinline', 'true');
     }
     
-    const handleLoadStart = () => setIsLoading(true);
-    const handleCanPlay = () => setIsLoading(false);
+    const handleLoadStart = () => {
+      console.log('AudioPlayer: Load started');
+      setIsLoading(true);
+    };
+    
+    const handleCanPlay = () => {
+      console.log('AudioPlayer: Can play');
+      setIsLoading(false);
+    };
+    
     const handleLoadedMetadata = () => {
+      console.log('AudioPlayer: Metadata loaded, duration:', audio.duration);
       if (audio.duration && !isNaN(audio.duration)) {
         setAudioDuration(audio.duration);
       }
@@ -72,36 +81,40 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
     
     const handlePlay = () => {
+      console.log('AudioPlayer: Playing');
       setIsPlaying(true);
       onPlay?.();
     };
     
     const handlePause = () => {
+      console.log('AudioPlayer: Paused');
       setIsPlaying(false);
       onPause?.();
     };
     
     const handleEnded = () => {
+      console.log('AudioPlayer: Ended');
       setIsPlaying(false);
       setCurrentTime(0);
       onEnded?.();
     };
     
     const handleError = (e: any) => {
-      console.error('Audio error details:', {
+      console.error('AudioPlayer: Error event:', e);
+      console.error('AudioPlayer: Error details:', {
         error: e,
         audioUrl,
         audioSrc: audio?.src,
         readyState: audio?.readyState,
         networkState: audio?.networkState,
-        errorCode: e.target?.error?.code,
-        errorMessage: e.target?.error?.message
+        errorCode: audio?.error?.code,
+        errorMessage: audio?.error?.message
       });
       setIsLoading(false);
       setIsPlaying(false);
       toast({
         title: 'Audio Error',
-        description: `Failed to load audio: ${audioUrl}. Please check your connection and try again.`,
+        description: `Connection failed: ${audioUrl}`,
         variant: 'destructive'
       });
     };
@@ -237,10 +250,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           ref={audioRef} 
           src={audioUrl}
           playsInline
-          preload="metadata"
-          onLoadStart={() => console.log('Audio load started for:', audioUrl)}
-          onCanPlay={() => console.log('Audio can play for:', audioUrl)}
-          onError={(e) => console.error('Audio element error:', e, 'URL:', audioUrl)}
+          preload="none"
+          controls={false}
+          onLoadStart={() => console.log('Audio element: load started for:', audioUrl)}
+          onCanPlay={() => console.log('Audio element: can play for:', audioUrl)}
+          onError={(e) => console.error('Audio element: error for:', audioUrl, e)}
         />
         <Button
           variant="ghost"
@@ -283,10 +297,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           ref={audioRef} 
           src={audioUrl}
           playsInline
-          preload="metadata"
-          onLoadStart={() => console.log('Audio load started for:', audioUrl)}
-          onCanPlay={() => console.log('Audio can play for:', audioUrl)}
-          onError={(e) => console.error('Audio element error:', e, 'URL:', audioUrl)}
+          preload="none"
+          controls={false}
+          onLoadStart={() => console.log('Audio element: load started for:', audioUrl)}
+          onCanPlay={() => console.log('Audio element: can play for:', audioUrl)}
+          onError={(e) => console.error('Audio element: error for:', audioUrl, e)}
         />
         
         {title && (
