@@ -103,13 +103,29 @@ const UploadButton: React.FC<UploadButtonProps> = ({ onUploadComplete, session: 
     }
   };
 
-  const startTranscription = async (recordingId: string) => {
+  const startTranscription = async (recordingId: string, apiKey?: string) => {
     try {
+      const requestBody: any = { recordingId }
+      
+      // If we have an API key, include it in the request
+      if (apiKey) {
+        requestBody.openaiApiKey = apiKey
+      }
+
       const { data: result, error } = await supabase.functions.invoke('transcribe-audio', {
-        body: { recordingId },
+        body: requestBody,
       });
 
       if (error) {
+        // Check if it's an API key error
+        if (error.message?.includes('OpenAI API key required')) {
+          // Prompt user for API key
+          const userApiKey = prompt('Please enter your OpenAI API key to enable transcription:')
+          if (userApiKey) {
+            // Retry with user-provided API key
+            return startTranscription(recordingId, userApiKey.trim())
+          }
+        }
         throw new Error(error.message || 'Transcription failed');
       }
       
