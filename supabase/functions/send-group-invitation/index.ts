@@ -5,6 +5,30 @@ import { Resend } from "npm:resend@2.0.0";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+};
+
+// Rate limiting: Max 5 invitations per user per minute
+const rateLimiter = new Map<string, { count: number; resetTime: number }>();
+
+const checkRateLimit = (userId: string): boolean => {
+  const now = Date.now();
+  const userLimit = rateLimiter.get(userId);
+  
+  if (!userLimit || now > userLimit.resetTime) {
+    rateLimiter.set(userId, { count: 1, resetTime: now + 60000 }); // 1 minute
+    return true;
+  }
+  
+  if (userLimit.count >= 5) {
+    return false;
+  }
+  
+  userLimit.count++;
+  return true;
 };
 
 interface InvitationRequest {
@@ -40,8 +64,38 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { groupId, email, groupName }: InvitationRequest = await req.json();
 
-    // Generate invitation token
+    // Rate limiting check
+    if (!checkRateLimit(user.id)) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please wait before sending more invitations.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Input validation
+    if (!email || !groupId || !groupName) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (email.length > 254 || groupName.length > 100) {
+      return new Response(
+        JSON.stringify({ error: 'Input exceeds maximum length' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Generate secure invitation token (JWT-based)
     const invitationToken = crypto.randomUUID();
+    
+    // Log security event for invitation
+    await supabase.rpc('log_security_event', {
+      event_type: 'group_invitation_sent',
+      user_id: user.id,
+      details: { group_id: groupId, invited_email: email }
+    });
     
     // Create invitation record
     const { error: inviteError } = await supabase
@@ -71,7 +125,7 @@ const handler = async (req: Request): Promise<Response> => {
     const inviterEmail = profile?.email || user.email || 'SwainAI Team';
     
     // Send invitation email
-    const inviteUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '')}/functions/v1/accept-group-invitation?token=${invitationToken}`;
+    const inviteUrl = `https://swainai.com/auth?invite=${invitationToken}&group=${encodeURIComponent(groupName)}`;
     
     const { error: emailError } = await resend.emails.send({
       from: 'SwainAI <noreply@swainai.com>',

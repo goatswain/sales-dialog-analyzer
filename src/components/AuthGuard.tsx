@@ -61,10 +61,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Initial redirect logic
-      if (!session && window.location.pathname !== '/auth') {
-        navigate('/auth', { replace: true });
-      }
+      // No automatic redirect logic here since routes handle their own access control
     });
 
     return () => {

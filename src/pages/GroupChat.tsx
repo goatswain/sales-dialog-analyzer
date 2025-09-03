@@ -36,6 +36,7 @@ import { toast } from '@/hooks/use-toast';
 import TopBar from '@/components/TopBar';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useSubscription } from '@/hooks/useSubscription';
+import { sanitizeInput, validateEmail, sanitizeMessageContent } from '@/utils/sanitize';
 
 interface Group {
   id: string;
@@ -91,6 +92,7 @@ const GroupChat = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [renaming, setRenaming] = useState(false);
@@ -134,6 +136,16 @@ const GroupChat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Cleanup audio when component unmounts
+  useEffect(() => {
+    return () => {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+    };
+  }, [currentAudio]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -264,13 +276,44 @@ const GroupChat = () => {
     }
   };
 
+  const fetchNotificationPrefs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('group_notification_preferences')
+        .select('*')
+        .eq('group_id', groupId)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching notification preferences:', error);
+        return;
+      }
+
+      setNotificationPrefs(data);
+    } catch (error) {
+      console.error('Error fetching notification preferences:', error);
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
+
+    // Sanitize message content before sending
+    const sanitizedMessage = sanitizeMessageContent(newMessage.trim());
+    if (!sanitizedMessage) {
+      toast({
+        title: 'Error',
+        description: 'Message content is invalid',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     console.log('Attempting to send message:', {
       groupId,
       userId: user?.id,
-      messageContent: newMessage.trim()
+      messageContent: sanitizedMessage
     });
 
     setSending(true);
@@ -281,7 +324,7 @@ const GroupChat = () => {
           group_id: groupId,
           user_id: user?.id,
           message_type: 'text',
-          content: newMessage.trim()
+          content: sanitizedMessage
         });
 
       if (error) {
@@ -306,12 +349,23 @@ const GroupChat = () => {
   const inviteMember = async () => {
     if (!inviteEmail.trim()) return;
 
+    // Validate and sanitize email
+    const sanitizedEmail = sanitizeInput(inviteEmail.trim());
+    if (!validateEmail(sanitizedEmail)) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a valid email address',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setInviting(true);
     try {
       const { error } = await supabase.functions.invoke('send-group-invitation', {
         body: {
           groupId: groupId,
-          email: inviteEmail.trim(),
+          email: sanitizedEmail,
           groupName: group?.name
         }
       });
@@ -338,15 +392,105 @@ const GroupChat = () => {
   };
 
   const toggleAudio = async (audioUrl: string, messageId: string) => {
-    if (playingAudio === messageId) {
-      // Stop audio
+    if (playingAudio === messageId && currentAudio) {
+      // Stop current audio
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
       setPlayingAudio(null);
+      setCurrentAudio(null);
     } else {
-      // Play audio
-      setPlayingAudio(messageId);
-      const audio = new Audio(audioUrl);
-      audio.onended = () => setPlayingAudio(null);
-      audio.play();
+      try {
+        // Stop any existing audio first
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        }
+        
+        // Play new audio with mobile optimizations
+        const audio = new Audio();
+        
+        // Mobile-specific settings
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous';
+        
+        // Set up event handlers before setting src
+        audio.onloadstart = () => {
+          console.log('Audio loading started');
+        };
+        
+        audio.oncanplay = () => {
+          console.log('Audio can play');
+        };
+        
+        audio.onended = () => {
+          setPlayingAudio(null);
+          setCurrentAudio(null);
+        };
+        
+        audio.onerror = (e) => {
+          console.error('Audio error:', e);
+          setPlayingAudio(null);
+          setCurrentAudio(null);
+          toast({
+            title: 'Error',
+            description: 'Failed to play audio recording. Please try again.',
+            variant: 'destructive'
+          });
+        };
+        
+        audio.onabort = () => {
+          console.log('Audio playback aborted');
+        };
+        
+        audio.onstalled = () => {
+          console.log('Audio stalled');
+        };
+        
+        // Set audio source
+        audio.src = audioUrl;
+        
+        setCurrentAudio(audio);
+        setPlayingAudio(messageId);
+        
+        // Load and play with better mobile support
+        await audio.load();
+        
+        // For mobile devices, we need to handle play() promise properly
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+          await playPromise.catch((error) => {
+            console.error('Play failed:', error);
+            setPlayingAudio(null);
+            setCurrentAudio(null);
+            
+            // Check if it's an interaction error (common on mobile)
+            if (error.name === 'NotAllowedError') {
+              toast({
+                title: 'Audio Blocked',
+                description: 'Please tap the play button to start audio playback.',
+                variant: 'destructive'
+              });
+            } else {
+              toast({
+                title: 'Playback Error', 
+                description: 'Unable to play audio. Please check your connection.',
+                variant: 'destructive'
+              });
+            }
+          });
+        }
+        
+      } catch (error) {
+        console.error('Toggle audio error:', error);
+        setPlayingAudio(null);
+        setCurrentAudio(null);
+        toast({
+          title: 'Error',
+          description: 'Failed to initialize audio player',
+          variant: 'destructive'
+        });
+      }
     }
   };
 
@@ -380,18 +524,29 @@ const GroupChat = () => {
   const renameGroup = async () => {
     if (!newGroupName.trim() || !groupId) return;
 
+    // Sanitize group name
+    const sanitizedName = sanitizeInput(newGroupName.trim(), 100);
+    if (!sanitizedName) {
+      toast({
+        title: 'Error',
+        description: 'Group name is invalid',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setRenaming(true);
     try {
       const { error } = await supabase
         .from('groups')
-        .update({ name: newGroupName.trim() })
+        .update({ name: sanitizedName })
         .eq('id', groupId);
 
       if (error) throw error;
 
       // Update local state
       if (group) {
-        setGroup({ ...group, name: newGroupName.trim() });
+        setGroup({ ...group, name: sanitizedName });
       }
 
       toast({
@@ -399,13 +554,13 @@ const GroupChat = () => {
         description: 'Group name updated successfully'
       });
 
-      setNewGroupName('');
       setIsRenameDialogOpen(false);
+      setNewGroupName('');
     } catch (error) {
       console.error('Error renaming group:', error);
       toast({
         title: 'Error',
-        description: 'Failed to rename group',
+        description: 'Failed to update group name',
         variant: 'destructive'
       });
     } finally {
@@ -413,96 +568,11 @@ const GroupChat = () => {
     }
   };
 
-  const fetchNotificationPrefs = async () => {
-    try {
-      const { data } = await supabase
-        .from('group_notification_preferences')
-        .select('*')
-        .eq('group_id', groupId)
-        .eq('user_id', user?.id)
-        .single();
-      
-      setNotificationPrefs(data);
-    } catch (error) {
-      // No prefs set yet, that's ok
-    }
-  };
-
-  const leaveGroup = async () => {
-    if (!user || !groupId) return;
-
-    setLeaving(true);
-    try {
-      // Get user's display name for system message
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('display_name, email')
-        .eq('user_id', user.id)
-        .single();
-
-      const displayName = profile?.display_name || profile?.email?.split('@')[0] || 'Someone';
-
-      // Add system message
-      await supabase
-        .from('group_messages')
-        .insert({
-          group_id: groupId,
-          message_type: 'text',
-          content: `${displayName} left the group`,
-          system_message: true
-        });
-
-      // Remove user from group
-      const { error } = await supabase
-        .from('group_members')
-        .delete()
-        .eq('group_id', groupId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Left group',
-        description: 'You have left the group successfully'
-      });
-
-      navigate('/groups');
-    } catch (error) {
-      console.error('Error leaving group:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to leave group',
-        variant: 'destructive'
-      });
-    } finally {
-      setLeaving(false);
-    }
-  };
-
   const deleteGroup = async () => {
     if (!groupId) return;
-
+    
     setDeleting(true);
     try {
-      // Delete all group messages first
-      await supabase
-        .from('group_messages')
-        .delete()
-        .eq('group_id', groupId);
-
-      // Delete all group members
-      await supabase
-        .from('group_members')
-        .delete()
-        .eq('group_id', groupId);
-
-      // Delete notification preferences
-      await supabase
-        .from('group_notification_preferences')
-        .delete()
-        .eq('group_id', groupId);
-
-      // Finally delete the group
       const { error } = await supabase
         .from('groups')
         .delete()
@@ -511,8 +581,8 @@ const GroupChat = () => {
       if (error) throw error;
 
       toast({
-        title: 'Group deleted',
-        description: 'The group has been deleted successfully'
+        title: 'Success',
+        description: 'Group deleted successfully'
       });
 
       navigate('/groups');
@@ -528,527 +598,534 @@ const GroupChat = () => {
     }
   };
 
-  const muteNotifications = async (duration: string) => {
-    if (!user || !groupId) return;
+  const leaveGroup = async () => {
+    if (!groupId || !user) return;
+    
+    setLeaving(true);
+    try {
+      const { error } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', user.id);
 
-    let mutedUntil = null;
-    const now = new Date();
+      if (error) throw error;
 
-    switch (duration) {
-      case '8h':
-        mutedUntil = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-        break;
-      case '1w':
-        mutedUntil = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'forever':
-        mutedUntil = new Date('2099-01-01');
-        break;
-      default:
-        return;
+      toast({
+        title: 'Success',
+        description: 'Left group successfully'
+      });
+
+      navigate('/groups');
+    } catch (error) {
+      console.error('Error leaving group:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to leave group',
+        variant: 'destructive'
+      });
+    } finally {
+      setLeaving(false);
     }
+  };
+
+  const muteGroup = async () => {
+    if (!groupId || !user || !muteDuration) return;
+
+    const duration = parseInt(muteDuration);
+    const muteUntil = new Date(Date.now() + duration * 60 * 1000);
 
     try {
       const { error } = await supabase
         .from('group_notification_preferences')
         .upsert({
-          user_id: user.id,
           group_id: groupId,
-          muted_until: mutedUntil.toISOString()
+          user_id: user.id,
+          muted_until: muteUntil.toISOString()
         });
 
       if (error) throw error;
 
-      setNotificationPrefs({ muted_until: mutedUntil.toISOString() });
+      setNotificationPrefs({ muted_until: muteUntil.toISOString() });
       setMuteDialogOpen(false);
+      setMuteDuration('');
 
-      const durationText = duration === '8h' ? '8 hours' : duration === '1w' ? '1 week' : 'indefinitely';
       toast({
-        title: 'Notifications muted',
-        description: `Group notifications muted for ${durationText}`
+        title: 'Success',
+        description: `Group muted for ${duration} minutes`
       });
     } catch (error) {
-      console.error('Error muting notifications:', error);
+      console.error('Error muting group:', error);
       toast({
         title: 'Error',
-        description: 'Failed to mute notifications',
+        description: 'Failed to mute group',
         variant: 'destructive'
       });
     }
   };
 
-  const unmuteNotifications = async () => {
-    if (!user || !groupId) return;
+  const unmuteGroup = async () => {
+    if (!groupId || !user) return;
 
     try {
       const { error } = await supabase
         .from('group_notification_preferences')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('group_id', groupId);
+        .upsert({
+          group_id: groupId,
+          user_id: user.id,
+          muted_until: null
+        });
 
       if (error) throw error;
 
-      setNotificationPrefs(null);
+      setNotificationPrefs({ muted_until: null });
+
       toast({
-        title: 'Notifications enabled',
-        description: 'Group notifications have been enabled'
+        title: 'Success',
+        description: 'Group unmuted'
       });
     } catch (error) {
-      console.error('Error unmuting notifications:', error);
+      console.error('Error unmuting group:', error);
       toast({
         title: 'Error',
-        description: 'Failed to enable notifications',
+        description: 'Failed to unmute group',
         variant: 'destructive'
       });
     }
   };
 
-  const isNotificationsMuted = () => {
-    if (!notificationPrefs?.muted_until) return false;
-    return new Date(notificationPrefs.muted_until) > new Date();
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
+
+  const formatMessageTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    if (messageDate.getTime() === today.getTime()) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const isMuted = notificationPrefs?.muted_until && new Date(notificationPrefs.muted_until) > new Date();
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading group...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!group) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-muted-foreground">Group not found</p>
+          <Button onClick={() => navigate('/groups')} className="mt-4">
+            Back to Groups
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-16">
+    <div className="flex flex-col min-h-screen bg-background">
       <TopBar isProUser={isProUser} />
       
-      <div className="container mx-auto p-4 max-w-2xl">
-        {/* Group Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
+      {/* Group Header */}
+      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-16 z-40">
+        <div className="flex items-center justify-between p-4 max-w-4xl mx-auto">
+          <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/groups')}
-              className="gap-2"
+              className="lg:hidden"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-foreground">{group?.name}</h1>
+              <h1 className="text-lg font-semibold">{sanitizeInput(group.name)}</h1>
               <p className="text-sm text-muted-foreground">
-                {members.length} members
+                {members.length} member{members.length !== 1 ? 's' : ''}
+                {isMuted && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    <BellOff className="h-3 w-3 mr-1" />
+                    Muted
+                  </Badge>
+                )}
               </p>
             </div>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => setIsViewMembersOpen(true)}>
-                <Eye className="mr-2 h-4 w-4" />
-                View Members
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsInviteDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Members
-              </DropdownMenuItem>
-              {isGroupCreator && (
-                <DropdownMenuItem onClick={() => setIsRenameDialogOpen(true)}>
-                  <Edit3 className="mr-2 h-4 w-4" />
-                  Rename Group
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setMuteDialogOpen(true)}>
-                {isNotificationsMuted() ? (
-                  <>
-                    <Bell className="mr-2 h-4 w-4" />
-                    Unmute Notifications
-                  </>
-                ) : (
-                  <>
-                    <BellOff className="mr-2 h-4 w-4" />
-                    Mute Notifications
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={leaveGroup}
-                disabled={leaving}
-                className="text-destructive focus:text-destructive"
+          <div className="flex items-center gap-2">
+            {/* Notifications Toggle */}
+            {isMuted ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={unmuteGroup}
+                className="hidden sm:flex"
               >
-                <LogOut className="mr-2 h-4 w-4" />
-                {leaving ? 'Leaving...' : 'Leave Group'}
-              </DropdownMenuItem>
-              {isGroupCreator && (
-                <DropdownMenuItem 
-                  onClick={() => setIsDeleteConfirmOpen(true)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Group
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          {/* Dialogs */}
-          <Dialog open={isViewMembersOpen} onOpenChange={setIsViewMembersOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Group Members ({members.length})</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {members.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="text-sm">
-                          {member.profiles.email.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {member.profiles.display_name || member.profiles.email.split('@')[0]}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {member.profiles.email}
-                        </p>
-                      </div>
+                <BellOff className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Dialog open={muteDialogOpen} onOpenChange={setMuteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="hidden sm:flex">
+                    <Bell className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Mute Group</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      How long would you like to mute notifications for this group?
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setMuteDuration('15')}
+                        className={muteDuration === '15' ? 'bg-primary text-primary-foreground' : ''}
+                      >
+                        15 minutes
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setMuteDuration('60')}
+                        className={muteDuration === '60' ? 'bg-primary text-primary-foreground' : ''}
+                      >
+                        1 hour
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setMuteDuration('480')}
+                        className={muteDuration === '480' ? 'bg-primary text-primary-foreground' : ''}
+                      >
+                        8 hours
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setMuteDuration('1440')}
+                        className={muteDuration === '1440' ? 'bg-primary text-primary-foreground' : ''}
+                      >
+                        24 hours
+                      </Button>
                     </div>
-                    <Badge variant={member.role === 'creator' ? 'default' : 'secondary'}>
-                      {member.role}
-                    </Badge>
                   </div>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Rename Group</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Group Name
-                  </label>
-                  <Input
-                    placeholder="Enter new group name"
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && renameGroup()}
-                  />
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsRenameDialogOpen(false);
-                      setNewGroupName('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={renameGroup}
-                    disabled={!newGroupName.trim() || renaming}
-                  >
-                    {renaming ? 'Renaming...' : 'Rename Group'}
-                  </Button>
-                </DialogFooter>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Invite Team Member</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Email Address
-                  </label>
-                  <Input
-                    type="email"
-                    placeholder="colleague@company.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && inviteMember()}
-                  />
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsInviteDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={inviteMember}
-                    disabled={!inviteEmail.trim() || inviting}
-                  >
-                    {inviting ? 'Sending...' : 'Send Invite'}
-                  </Button>
-                </DialogFooter>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={muteDialogOpen} onOpenChange={setMuteDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {isNotificationsMuted() ? 'Unmute Notifications' : 'Mute Notifications'}
-                </DialogTitle>
-              </DialogHeader>
-              {isNotificationsMuted() ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Notifications are currently muted for this group.
-                  </p>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setMuteDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={unmuteNotifications}>
-                      Unmute
+                    <Button onClick={muteGroup} disabled={!muteDuration}>
+                      Mute
                     </Button>
                   </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+
+            {/* View Members */}
+            <Dialog open={isViewMembersOpen} onOpenChange={setIsViewMembersOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Group Members</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {members.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <UserAvatar 
+                          avatarUrl={member.profiles.avatar_url}
+                          displayName={member.profiles.display_name}
+                          email={member.profiles.email}
+                        />
+                        <div>
+                          <p className="font-medium">
+                            {sanitizeInput(member.profiles.display_name || member.profiles.email)}
+                          </p>
+                          {member.role === 'creator' && (
+                            <Badge variant="secondary" className="text-xs">
+                              Creator
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Group Settings Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsInviteDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Invite Member
+                </DropdownMenuItem>
+                
+                {isGroupCreator && (
+                  <>
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        setNewGroupName(group.name);
+                        setIsRenameDialogOpen(true);
+                      }}
+                    >
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Rename Group
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => setIsDeleteConfirmOpen(true)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Group
+                    </DropdownMenuItem>
+                  </>
+                )}
+                
+                {!isGroupCreator && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={leaveGroup}
+                      className="text-destructive focus:text-destructive"
+                      disabled={leaving}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      {leaving ? 'Leaving...' : 'Leave Group'}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto p-4 pb-24 max-w-4xl mx-auto space-y-4">
+          {messages.map((message) => (
+            <div key={message.id} className="group">
+              {message.system_message ? (
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-muted rounded-full text-sm text-muted-foreground">
+                    <Users className="h-3 w-3" />
+                    {sanitizeInput(message.content)}
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    How long would you like to mute notifications?
-                  </p>
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => muteNotifications('8h')}
-                    >
-                      For 8 hours
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => muteNotifications('1w')}
-                    >
-                      For 1 week
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => muteNotifications('forever')}
-                    >
-                      Until I turn it back on
-                    </Button>
+                <div className="flex gap-3">
+                  <UserAvatar 
+                    avatarUrl={message.profiles.avatar_url}
+                    displayName={message.profiles.display_name}
+                    email={message.profiles.email}
+                  />
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-medium text-sm">
+                        {sanitizeInput(message.profiles.display_name || message.profiles.email)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatMessageTime(message.created_at)}
+                      </span>
+                    </div>
+                    
+                    {message.message_type === 'text' && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-sm">{sanitizeInput(message.content)}</p>
+                      </div>
+                    )}
+                    
+                    {message.message_type === 'recording' && message.recordings && (
+                      <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => toggleAudio(message.recordings!.audio_url, message.id)}
+                            className="h-8 w-8 p-0"
+                          >
+                            {playingAudio === message.id ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <div className="flex-1 text-sm">
+                            <p className="font-medium">
+                              {sanitizeInput(message.recordings.title || 'Audio Recording')}
+                            </p>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              <span>{formatTime(message.recordings.duration_seconds)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* AI Summary for recordings */}
+                        {message.recording_id && (
+                          <GroupAISummary 
+                            recordingId={message.recording_id} 
+                            duration={message.recordings.duration_seconds}
+                            autoGenerate={false}
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
-            </DialogContent>
-          </Dialog>
-
-          <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Group</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this group? This action cannot be undone. 
-                  All messages and member data will be permanently deleted.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={deleteGroup}
-                  disabled={deleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {deleting ? 'Deleting...' : 'Delete Group'}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-
-        <div className="space-y-6">
-
-        {/* Chat Area */}
-        <Card className="h-[500px] flex flex-col">
-          {/* Messages */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-4">
-            {messages.map((message) => (
-               <div
-                 key={message.id}
-                 className={`flex ${
-                   message.system_message 
-                     ? 'justify-center' 
-                     : message.user_id === user?.id 
-                       ? 'justify-end' 
-                       : 'justify-start'
-                 }`}
-               >
-                 <div
-                   className={`max-w-[80%] ${
-                     message.system_message
-                       ? 'bg-muted/50 text-muted-foreground border border-border'
-                       : message.user_id === user?.id
-                         ? 'bg-primary text-primary-foreground'
-                         : 'bg-muted'
-                   } rounded-lg p-3`}
-                 >
-                   {!message.system_message && (
-                     <div className="flex items-center gap-2 mb-1">
-                       <UserAvatar
-                         avatarUrl={message.profiles?.avatar_url}
-                         displayName={message.profiles?.display_name}
-                         email={message.profiles?.email}
-                         size="sm"
-                       />
-                       <span className="text-xs opacity-75">
-                         {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Unknown'}
-                       </span>
-                       <span className="text-xs opacity-50">
-                         {new Date(message.created_at).toLocaleTimeString()}
-                       </span>
-                     </div>
-                   )}
-
-                   {message.message_type === 'text' && !message.system_message && (
-                     <p className="text-sm">{message.content}</p>
-                   )}
-
-                   {message.system_message && (
-                     <p className="text-xs italic text-center">{message.content}</p>
-                   )}
-
-                  {message.message_type === 'recording_share' && (
-                    <div className="bg-background/10 rounded p-2 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Mic className="h-4 w-4" />
-                        <span className="text-sm font-medium">
-                          Shared recording
-                        </span>
-                      </div>
-                      <p className="text-xs opacity-75">{message.content}</p>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => toggleAudio(message.audio_url!, message.id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {playingAudio === message.id ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <div className="flex items-center gap-1 text-xs opacity-75">
-                          <Clock className="h-3 w-3" />
-                          {message.duration_seconds && (
-                            <>
-                              {Math.floor(message.duration_seconds / 60)}:
-                              {(message.duration_seconds % 60).toString().padStart(2, '0')}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-xs opacity-75 mt-1">
-                        Shared by {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Unknown'}
-                      </div>
-                      {message.recording_id && message.duration_seconds && (
-                        <GroupAISummary 
-                          recordingId={message.recording_id}
-                          duration={message.duration_seconds}
-                          autoGenerate={message.duration_seconds < 120}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  {message.message_type === 'recording' && message.recordings && (
-                    <div className="bg-background/10 rounded p-2 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Mic className="h-4 w-4" />
-                        <span className="text-sm font-medium">
-                          {message.recordings.title || 'Audio Recording'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => toggleAudio(message.recordings!.audio_url, message.id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {playingAudio === message.id ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <div className="flex items-center gap-1 text-xs opacity-75">
-                          <Clock className="h-3 w-3" />
-                          {Math.floor(message.recordings.duration_seconds / 60)}:
-                          {(message.recordings.duration_seconds % 60).toString().padStart(2, '0')}
-                        </div>
-                      </div>
-                      <div className="text-xs opacity-75 mt-1">
-                        Shared by {message.profiles?.display_name || message.profiles?.email?.split('@')[0] || 'Unknown'}
-                      </div>
-                      {message.recording_id && (
-                        <GroupAISummary 
-                          recordingId={message.recording_id}
-                          duration={message.recordings.duration_seconds}
-                          autoGenerate={message.recordings.duration_seconds < 120}
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Message Input */}
-          <div className="border-t p-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Type your message..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                className="flex-1"
-              />
-              <Button
-                onClick={sendMessage}
-                disabled={!newMessage.trim() || sending}
-                size="icon"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
             </div>
-          </div>
-        </Card>
+          ))}
+          <div ref={messagesEndRef} />
         </div>
       </div>
-      
+
+      {/* Message Input */}
+      <div className="border-t bg-card/50 backdrop-blur-sm sticky bottom-16 p-4">
+        <div className="max-w-4xl mx-auto">
+          <form 
+            onSubmit={(e) => { e.preventDefault(); sendMessage(); }} 
+            className="flex gap-3"
+          >
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1"
+              disabled={sending}
+              maxLength={10000}
+            />
+            <Button 
+              type="submit" 
+              size="sm" 
+              disabled={sending || !newMessage.trim()}
+              className="px-4"
+            >
+              {sending ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </form>
+        </div>
+      </div>
+
       <BottomNavigation />
+
+      {/* Invite Member Dialog */}
+      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite Member</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="invite-email" className="text-sm font-medium">
+                Email Address
+              </label>
+              <Input
+                id="invite-email"
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="Enter email address..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={inviteMember} disabled={inviting || !inviteEmail.trim()}>
+              {inviting ? 'Sending...' : 'Send Invite'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Group Dialog */}
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Group</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="group-name" className="text-sm font-medium">
+                Group Name
+              </label>
+              <Input
+                id="group-name"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                placeholder="Enter group name..."
+                maxLength={100}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={renameGroup} disabled={renaming || !newGroupName.trim()}>
+              {renaming ? 'Updating...' : 'Update Name'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Group Confirmation */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this group? This action cannot be undone.
+              All messages and shared recordings will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={deleteGroup}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Deleting...' : 'Delete Group'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

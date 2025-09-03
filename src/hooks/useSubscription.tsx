@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthGuard';
+import { User, Session } from '@supabase/supabase-js';
 
 interface SubscriptionData {
   subscribed: boolean;
@@ -28,10 +29,27 @@ export const useSubscription = () => {
 
 interface SubscriptionProviderProps {
   children: React.ReactNode;
+  user?: User | null;
+  session?: Session | null;
 }
 
-export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children }) => {
-  const { user, session } = useAuth();
+export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children, user: propUser, session: propSession }) => {
+  // Try to use AuthGuard context first, fall back to props
+  let authUser: User | null = null;
+  let authSession: Session | null = null;
+  
+  try {
+    const auth = useAuth();
+    authUser = auth.user;
+    authSession = auth.session;
+  } catch (error) {
+    // Not within AuthGuard context, use props instead
+    authUser = propUser || null;
+    authSession = propSession || null;
+  }
+  
+  const user = authUser;
+  const session = authSession;
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);

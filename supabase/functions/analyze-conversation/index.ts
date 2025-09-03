@@ -73,12 +73,13 @@ serve(async (req) => {
       )
     }
 
-    // Format transcript with timestamps for LLM
-    const formattedTranscript = transcript.segments?.map((segment: any) => {
+    // Format transcript with timestamps and speaker labels for LLM
+    const formattedTranscript = transcript.segments?.map((segment: any, index: number) => {
       const minutes = Math.floor(segment.start_time / 60)
       const seconds = Math.floor(segment.start_time % 60)
       const timestamp = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-      return `${timestamp} - ${segment.speaker}: ${segment.text}`
+      const speaker = segment.speaker || `Speaker ${(index % 2) + 1}`
+      return `${timestamp} - ${speaker}: ${segment.text}`
     }).join('\n') || transcript.text
 
     // Get OpenAI API key

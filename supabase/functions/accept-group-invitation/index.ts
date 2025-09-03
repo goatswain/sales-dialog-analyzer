@@ -33,7 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
           <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
             <h2 style="color: #dc2626;">Invalid or Expired Invitation</h2>
             <p>This invitation link is invalid or has expired.</p>
-            <a href="https://cb76a18e-c139-4c3d-a57c-c32c45db3b55.lovableproject.com" 
+            <a href="https://swainai.com" 
                style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
               Go to SwainAI
             </a>
@@ -45,7 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Redirect to auth page with invitation token
-    const appUrl = 'https://cb76a18e-c139-4c3d-a57c-c32c45db3b55.lovableproject.com';
+    const appUrl = 'https://swainai.com';
     const redirectUrl = `${appUrl}/auth?invite=${token}&group=${encodeURIComponent(invitation.groups.name)}`;
     
     return Response.redirect(redirectUrl, 302);
@@ -57,7 +57,7 @@ const handler = async (req: Request): Promise<Response> => {
         <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center;">
           <h2 style="color: #dc2626;">Error</h2>
           <p>An error occurred while processing your invitation.</p>
-          <a href="https://cb76a18e-c139-4c3d-a57c-c32c45db3b55.lovableproject.com" 
+          <a href="https://swainai.com" 
              style="background-color: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
             Go to SwainAI
           </a>
