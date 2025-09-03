@@ -40,20 +40,20 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !audioUrl) {
+      console.log('AudioPlayer: Missing audio element or URL:', { hasAudio: !!audio, audioUrl });
+      return;
+    }
 
     console.log('AudioPlayer: Setting up audio element with URL:', audioUrl);
 
-    // Mobile-specific optimizations
-    audio.preload = isMobile ? 'metadata' : 'auto';
-    // Remove crossOrigin setting that might cause CORS issues
-    // audio.crossOrigin = 'anonymous';
+    // Simple configuration - remove problematic settings
+    audio.preload = 'metadata';
     
     // Mobile-specific attributes for better compatibility
     if (isMobile) {
-      audio.setAttribute('playsinline', 'true'); // Prevent fullscreen on iOS
-      audio.setAttribute('webkit-playsinline', 'true'); // Legacy iOS support
-      audio.load(); // Preload metadata on mobile
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
     }
     
     const handleLoadStart = () => setIsLoading(true);
@@ -86,16 +86,20 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
     
     const handleError = (e: any) => {
-      console.error('Audio error:', e);
-      console.error('Audio URL:', audioUrl);
-      console.error('Audio element src:', audio?.src);
-      console.error('Audio element readyState:', audio?.readyState);
-      console.error('Audio element networkState:', audio?.networkState);
+      console.error('Audio error details:', {
+        error: e,
+        audioUrl,
+        audioSrc: audio?.src,
+        readyState: audio?.readyState,
+        networkState: audio?.networkState,
+        errorCode: e.target?.error?.code,
+        errorMessage: e.target?.error?.message
+      });
       setIsLoading(false);
       setIsPlaying(false);
       toast({
         title: 'Audio Error',
-        description: 'Failed to load audio. Please try again.',
+        description: `Failed to load audio: ${audioUrl}. Please check your connection and try again.`,
         variant: 'destructive'
       });
     };
@@ -140,51 +144,68 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const handlePlayPause = async () => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !audioUrl) {
+      console.error('AudioPlayer: Missing audio element or URL');
+      return;
+    }
+
+    console.log('AudioPlayer: Attempting to play/pause:', { isPlaying, audioUrl, readyState: audio.readyState });
 
     try {
       if (isPlaying) {
         audio.pause();
       } else {
         setIsLoading(true);
-        // Load audio first if needed
-        if (audio.readyState < 2) {
+        
+        // Reset and reload if needed
+        if (audio.readyState === 0) {
+          console.log('AudioPlayer: Reloading audio...');
+          audio.load();
+          
+          // Wait for canplay event
           await new Promise<void>((resolve, reject) => {
-            audio.oncanplay = () => {
-              setIsLoading(false);
+            const timeout = setTimeout(() => reject(new Error('Load timeout')), 10000);
+            
+            const onCanPlay = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener('canplay', onCanPlay);
+              audio.removeEventListener('error', onError);
               resolve();
             };
-            audio.onerror = reject;
-            audio.load();
+            
+            const onError = (e: any) => {
+              clearTimeout(timeout);
+              audio.removeEventListener('canplay', onCanPlay);
+              audio.removeEventListener('error', onError);
+              reject(e);
+            };
+            
+            audio.addEventListener('canplay', onCanPlay);
+            audio.addEventListener('error', onError);
           });
         }
         
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          await playPromise;
-        }
+        await audio.play();
         setIsLoading(false);
       }
     } catch (error: any) {
-      console.error('Play/pause error:', error);
+      console.error('AudioPlayer: Play/pause error:', error);
       setIsLoading(false);
       
-      // Handle mobile interaction requirements
+      let description = 'Unable to play audio. Please check your connection and try again.';
       if (error.name === 'NotAllowedError') {
-        toast({
-          title: 'Tap to Play',
-          description: isMobile 
-            ? 'Tap the play button to start audio playback on mobile devices.' 
-            : 'Click the play button to start audio playback.',
-          variant: 'destructive'
-        });
-      } else {
-        toast({
-          title: 'Playback Error',
-          description: 'Unable to play audio. Please check your connection and try again.',
-          variant: 'destructive'
-        });
+        description = isMobile 
+          ? 'Tap the play button to start audio playback on mobile devices.' 
+          : 'Click the play button to start audio playback.';
+      } else if (error.name === 'NotSupportedError') {
+        description = 'This audio format is not supported by your browser.';
       }
+      
+      toast({
+        title: 'Playback Error',
+        description,
+        variant: 'destructive'
+      });
     }
   };
 
@@ -214,7 +235,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           ref={audioRef} 
           src={audioUrl}
           playsInline
-          webkit-playsinline="true"
+          preload="metadata"
           onLoadStart={() => console.log('Audio load started for:', audioUrl)}
           onCanPlay={() => console.log('Audio can play for:', audioUrl)}
           onError={(e) => console.error('Audio element error:', e, 'URL:', audioUrl)}
@@ -260,7 +281,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           ref={audioRef} 
           src={audioUrl}
           playsInline
-          webkit-playsinline="true"
+          preload="metadata"
           onLoadStart={() => console.log('Audio load started for:', audioUrl)}
           onCanPlay={() => console.log('Audio can play for:', audioUrl)}
           onError={(e) => console.error('Audio element error:', e, 'URL:', audioUrl)}
