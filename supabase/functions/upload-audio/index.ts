@@ -30,7 +30,7 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
           headers: { authorization: authHeader },
@@ -38,8 +38,8 @@ serve(async (req) => {
       }
     )
 
-    // Use proper Supabase auth verification (verify_jwt = true handles JWT validation)
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''))
+    // Get user from JWT token
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
     if (authError || !user) {
       console.error('Authentication error:', authError)
