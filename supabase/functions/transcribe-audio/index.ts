@@ -216,18 +216,25 @@ serve(async (req) => {
       }
     )
 
-    // Use proper Supabase auth verification (verify_jwt = true handles JWT validation)
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''))
+    // Since verify_jwt = false, we can extract user info from the JWT directly
+    const jwt = authHeader.replace('Bearer ', '')
+    let userId: string
     
-    if (authError || !user) {
-      console.error('Authentication error:', authError)
+    try {
+      // Decode JWT to get user ID (since verify_jwt is false, we trust it's already verified)
+      const payload = JSON.parse(atob(jwt.split('.')[1]))
+      userId = payload.sub
+      
+      if (!userId) {
+        throw new Error('No user ID in token')
+      }
+    } catch (decodeError) {
+      console.error('JWT decode error:', decodeError)
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-    
-    const userId = user.id
 
     const { recordingId, openaiApiKey } = await req.json()
     

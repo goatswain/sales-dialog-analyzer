@@ -113,25 +113,6 @@ const Groups = () => {
   const createGroup = async () => {
     if (!newGroupName.trim()) return;
 
-    // Input validation
-    if (newGroupName.trim().length < 2) {
-      toast({
-        title: 'Error',
-        description: 'Group name must be at least 2 characters',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    if (newGroupName.trim().length > 50) {
-      toast({
-        title: 'Error',
-        description: 'Group name must be less than 50 characters',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     setCreating(true);
     try {
       console.log('Creating group with user ID:', user?.id);
@@ -253,7 +234,6 @@ const Groups = () => {
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && createGroup()}
-                  maxLength={50}
                 />
               </div>
               <div className="flex gap-2 justify-end">

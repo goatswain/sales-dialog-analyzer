@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { validateEmail, sanitizeInput } from '@/utils/sanitize';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -99,24 +98,10 @@ const Auth = () => {
     setError(null);
     setMessage(null);
 
-    // Validate and sanitize inputs
-    const sanitizedEmail = sanitizeInput(email.trim());
-    if (!validateEmail(sanitizedEmail)) {
-      setError('Please enter a valid email address');
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      setLoading(false);
-      return;
-    }
-
     const redirectUrl = `${window.location.origin}/`;
 
     const { error } = await supabase.auth.signUp({
-      email: sanitizedEmail,
+      email,
       password,
       options: {
         emailRedirectTo: redirectUrl
@@ -142,16 +127,8 @@ const Auth = () => {
     setError(null);
     setMessage(null);
 
-    // Validate and sanitize inputs
-    const sanitizedEmail = sanitizeInput(email.trim());
-    if (!validateEmail(sanitizedEmail)) {
-      setError('Please enter a valid email address');
-      setLoading(false);
-      return;
-    }
-
     const { error } = await supabase.auth.signInWithPassword({
-      email: sanitizedEmail,
+      email,
       password,
     });
 

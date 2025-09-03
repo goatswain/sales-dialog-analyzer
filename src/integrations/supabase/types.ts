@@ -14,36 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      audit_log: {
-        Row: {
-          id: string
-          new_data: Json | null
-          old_data: Json | null
-          operation: string
-          table_name: string
-          timestamp: string
-          user_id: string | null
-        }
-        Insert: {
-          id?: string
-          new_data?: Json | null
-          old_data?: Json | null
-          operation: string
-          table_name: string
-          timestamp?: string
-          user_id?: string | null
-        }
-        Update: {
-          id?: string
-          new_data?: Json | null
-          old_data?: Json | null
-          operation?: string
-          table_name?: string
-          timestamp?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       conversation_notes: {
         Row: {
           answer: string
@@ -334,33 +304,6 @@ export type Database = {
         }
         Relationships: []
       }
-      rate_limits: {
-        Row: {
-          created_at: string
-          endpoint: string
-          id: string
-          request_count: number
-          user_id: string
-          window_start: string
-        }
-        Insert: {
-          created_at?: string
-          endpoint: string
-          id?: string
-          request_count?: number
-          user_id: string
-          window_start?: string
-        }
-        Update: {
-          created_at?: string
-          endpoint?: string
-          id?: string
-          request_count?: number
-          user_id?: string
-          window_start?: string
-        }
-        Relationships: []
-      }
       recordings: {
         Row: {
           audio_filename: string | null
@@ -397,63 +340,6 @@ export type Database = {
           status?: string | null
           title?: string | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      security_log: {
-        Row: {
-          created_at: string
-          details: Json | null
-          event_type: string
-          id: string
-          ip_address: unknown | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          details?: Json | null
-          event_type: string
-          id?: string
-          ip_address?: unknown | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          details?: Json | null
-          event_type?: string
-          id?: string
-          ip_address?: unknown | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      sensitive_operation_limits: {
-        Row: {
-          count: number
-          created_at: string
-          id: string
-          operation_type: string
-          user_id: string
-          window_start: string
-        }
-        Insert: {
-          count?: number
-          created_at?: string
-          id?: string
-          operation_type: string
-          user_id: string
-          window_start?: string
-        }
-        Update: {
-          count?: number
-          created_at?: string
-          id?: string
-          operation_type?: string
-          user_id?: string
-          window_start?: string
         }
         Relationships: []
       }
@@ -536,14 +422,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_sensitive_operation_limit: {
-        Args: {
-          max_operations?: number
-          operation_type: string
-          window_minutes?: number
-        }
-        Returns: boolean
-      }
       create_group_safe: {
         Args: { creator_user_id: string; group_name: string }
         Returns: {
@@ -558,10 +436,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      is_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
       is_group_creator: {
         Args: { group_id: string; user_id: string }
         Returns: boolean
@@ -569,10 +443,6 @@ export type Database = {
       is_group_member: {
         Args: { group_id: string; user_id: string }
         Returns: boolean
-      }
-      log_security_event: {
-        Args: { details?: Json; event_type: string; user_id?: string }
-        Returns: undefined
       }
       test_auth_context: {
         Args: Record<PropertyKey, never>

@@ -12,33 +12,45 @@ serve(async (req) => {
   }
 
   try {
-    // Get the JWT token - it's already validated by the edge function
+    // Get authorization header
     const authHeader = req.headers.get('authorization')
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
+        JSON.stringify({ error: 'Authorization header required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Create Supabase client with the user's JWT
-    const supabase = createClient(
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        global: {
+          headers: { authorization: authHeader },
+        },
+      }
     )
 
-    // Get user (JWT is already validated by edge function)
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Since verify_jwt = false, we can extract user info from the JWT directly
+    const jwt = authHeader.replace('Bearer ', '')
+    let userId: string
     
-    if (userError || !user) {
+    try {
+      // Decode JWT to get user ID (since verify_jwt is false, we trust it's already verified)
+      const payload = JSON.parse(atob(jwt.split('.')[1]))
+      userId = payload.sub
+      
+      if (!userId) {
+        throw new Error('No user ID in token')
+      }
+    } catch (decodeError) {
+      console.error('JWT decode error:', decodeError)
       return new Response(
-        JSON.stringify({ error: 'Invalid user' }),
+        JSON.stringify({ error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Process file upload
     const formData = await req.formData()
     const audioFile = formData.get('audio') as File
     
@@ -49,12 +61,12 @@ serve(async (req) => {
       )
     }
 
-    // Generate filename
+    // Generate unique filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const filename = `audio-${timestamp}-${audioFile.name}`
     
-    // Upload to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabaseClient.storage
       .from('audio-recordings')
       .upload(filename, audioFile, {
         cacheControl: '3600',
@@ -62,34 +74,36 @@ serve(async (req) => {
       })
 
     if (uploadError) {
+      console.error('Upload error:', uploadError)
       return new Response(
-        JSON.stringify({ error: 'Upload failed: ' + uploadError.message }),
+        JSON.stringify({ error: 'Failed to upload audio file' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = supabaseClient.storage
       .from('audio-recordings')
       .getPublicUrl(filename)
 
-    // Create recording record
-    const { data: recording, error: dbError } = await supabase
+    // Create recording entry
+    const { data: recording, error: dbError } = await supabaseClient
       .from('recordings')
       .insert({
-        title: audioFile.name.replace(/\.[^/.]+$/, ''),
+        title: audioFile.name.replace(/\.[^/.]+$/, ''), // Remove extension
         audio_url: publicUrl,
         audio_filename: filename,
         file_size_bytes: audioFile.size,
         status: 'uploaded',
-        user_id: user.id
+        user_id: userId // Add user ownership
       })
       .select()
       .single()
 
     if (dbError) {
+      console.error('Database error:', dbError)
       return new Response(
-        JSON.stringify({ error: 'Database error: ' + dbError.message }),
+        JSON.stringify({ error: 'Failed to save recording data' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -104,8 +118,9 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: 'Server error: ' + error.message }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

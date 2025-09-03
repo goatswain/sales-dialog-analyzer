@@ -5,7 +5,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collap
 import { ChevronDown, ChevronRight, Zap, Loader2, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './ui/use-toast';
-import { sanitizeHtml, sanitizeInput } from '@/utils/sanitize';
 
 interface Segment {
   start: number;
@@ -62,30 +61,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
     
     setLoading(true);
     try {
-      // First check if we already have saved analysis
-      const { data: existingAnalysis } = await supabase
-        .from('conversation_notes')
-        .select('*')
-        .eq('recording_id', recordingId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (existingAnalysis) {
-        // Use existing saved analysis
-        try {
-          const analysisData = JSON.parse(existingAnalysis.answer);
-          setAnalysis(analysisData);
-        } catch (parseError) {
-          // If parsing fails, treat as plain text
-          setAnalysis({
-            answer: existingAnalysis.answer,
-            summary: existingAnalysis.answer,
-          });
-        }
-      }
-
-      // Check if transcript already exists
+      // First check if transcript already exists
       const { data: existingTranscript } = await supabase
         .from('transcripts')
         .select('*')
@@ -122,22 +98,20 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
           segments: Array.isArray(transcriptData.segments) ? transcriptData.segments as unknown as Segment[] : []
         });
 
-        // Only generate AI analysis if we don't have existing saved analysis
-        if (!existingAnalysis) {
-          const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-conversation', {
-            body: {
-              recordingId,
-              question: 'Please provide a concise summary highlighting key points, objections raised, responses given, and improvement tips for this conversation.'
-            }
-          });
-
-          if (analysisError) {
-            throw new Error(`Analysis failed: ${analysisError.message}`);
+        // Generate AI analysis
+        const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-conversation', {
+          body: {
+            recordingId,
+            question: 'Please provide a concise summary highlighting key points, objections raised, responses given, and improvement tips for this conversation.'
           }
+        });
 
-          if (analysisData?.analysis) {
-            setAnalysis(analysisData.analysis);
-          }
+        if (analysisError) {
+          throw new Error(`Analysis failed: ${analysisError.message}`);
+        }
+
+        if (analysisData?.analysis) {
+          setAnalysis(analysisData.analysis);
         }
       }
 
@@ -218,11 +192,11 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                        <span className="font-medium text-primary min-w-[70px]">
                          {segment.speaker || `Speaker ${(index % 2) + 1}`}:
                        </span>
-                       <span className="text-foreground">{sanitizeInput(segment.text)}</span>
+                       <span className="text-foreground">{segment.text}</span>
                      </div>
                    ))
                  ) : (
-                   <p className="text-foreground">{sanitizeInput(transcript.text)}</p>
+                   <p className="text-foreground">{transcript.text}</p>
                  )}
               </div>
             </Card>
@@ -250,7 +224,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                 {analysis.summary && (
                   <div>
                     <h4 className="text-xs font-medium text-muted-foreground mb-1">Overview:</h4>
-                    <p className="text-sm text-foreground">{sanitizeInput(analysis.summary)}</p>
+                    <p className="text-sm text-foreground">{analysis.summary}</p>
                   </div>
                 )}
 
@@ -259,7 +233,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                     <h4 className="text-xs font-medium text-muted-foreground mb-1">Key Objections:</h4>
                     <ul className="text-sm space-y-1">
                       {analysis.objections.map((objection, index) => (
-                        <li key={index} className="text-foreground">• {sanitizeInput(objection)}</li>
+                        <li key={index} className="text-foreground">• {objection}</li>
                       ))}
                     </ul>
                   </div>
@@ -270,7 +244,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                     <h4 className="text-xs font-medium text-muted-foreground mb-1">Improvement Tips:</h4>
                     <ul className="text-sm space-y-1">
                       {analysis.improvements.map((tip, index) => (
-                        <li key={index} className="text-foreground">• {sanitizeInput(tip)}</li>
+                        <li key={index} className="text-foreground">• {tip}</li>
                       ))}
                     </ul>
                   </div>
@@ -283,7 +257,7 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
                       {analysis.key_moments.map((moment, index) => (
                         <li key={index} className="text-foreground">
                           <span className="font-mono text-xs text-muted-foreground">{moment.timestamp}</span>
-                          {' - '}{sanitizeInput(moment.description)}
+                          {' - '}{moment.description}
                         </li>
                       ))}
                     </ul>
