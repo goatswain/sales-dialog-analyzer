@@ -4,6 +4,7 @@ import { Upload, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthGuard';
 import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UploadButtonProps {
   onUploadComplete: (recordingId: string) => void;
@@ -68,19 +69,13 @@ const UploadButton: React.FC<UploadButtonProps> = ({ onUploadComplete, session: 
       const formData = new FormData();
       formData.append('audio', audioFile);
 
-      const response = await fetch('https://cuabhynevjfnswaciunm.supabase.co/functions/v1/upload-audio', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
+      const { data: result, error } = await supabase.functions.invoke('upload-audio', {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
+      if (error) {
+        throw error;
       }
-
-      const result = await response.json();
       
       if (result.success) {
         toast({
@@ -110,23 +105,13 @@ const UploadButton: React.FC<UploadButtonProps> = ({ onUploadComplete, session: 
 
   const startTranscription = async (recordingId: string) => {
     try {
-      const url = `https://cuabhynevjfnswaciunm.supabase.co/functions/v1/transcribe-audio?t=${Date.now()}`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ recordingId }),
+      const { data: result, error } = await supabase.functions.invoke('transcribe-audio', {
+        body: { recordingId },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Transcription failed');
+      if (error) {
+        throw new Error(error.message || 'Transcription failed');
       }
-
-      const result = await response.json();
       
       if (result.success) {
         toast({
