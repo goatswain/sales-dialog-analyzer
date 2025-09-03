@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { User, Camera, Mail, Calendar, Crown, LogOut, CreditCard, Settings } from 'lucide-react';
+import { User, Camera, Mail, Calendar, Crown, LogOut, CreditCard, Settings, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthGuard';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -297,12 +297,12 @@ const Profile = () => {
 
           <Card 
             className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/daily-coaching')}
+            onClick={() => navigate('/swain-reports')}
           >
             <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium">Daily Coaching</span>
+                <TrendingUp className="w-5 h-5 text-muted-foreground" />
+                <span className="font-medium">Swain Reports</span>
               </div>
             </CardContent>
           </Card>
