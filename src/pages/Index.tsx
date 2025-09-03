@@ -10,19 +10,37 @@ import TranscriptViewer from '@/components/TranscriptViewer';
 import SubscriptionBanner from '@/components/SubscriptionBanner';
 import TopBar from '@/components/TopBar';
 import BottomNavigation from '@/components/BottomNavigation';
-import { useAuth } from '@/components/AuthGuard';
+import { AuthContext } from '@/components/AuthGuard';
 import { useSubscription } from '@/hooks/useSubscription';
+import { supabase } from '@/integrations/supabase/client';
 import dashboardPreview from '@/assets/dashboard-preview.jpg';
 
 const Index = () => {
-  const { user, session, loading } = useAuth();
-  const { subscriptionData, showSuccessBanner, dismissSuccessBanner } = useSubscription();
+  const authContext = React.useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [currentView, setCurrentView] = useState<'home' | 'transcript'>('home');
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [localLoading, setLocalLoading] = useState(true);
+  const [localSession, setLocalSession] = useState(null);
 
+  // Use auth context if available, otherwise check session directly
+  const user = authContext?.user || null;
+  const session = authContext?.session || localSession;
+  const loading = authContext?.loading ?? localLoading;
+
+  // If no auth context, check session directly
+  useEffect(() => {
+    if (!authContext) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setLocalSession(session);
+        setLocalLoading(false);
+      });
+    }
+  }, [authContext]);
+
+  const { subscriptionData, showSuccessBanner, dismissSuccessBanner } = useSubscription();
   const isProUser = subscriptionData?.subscribed || false;
 
   // Check if we should show transcript view from navigation
