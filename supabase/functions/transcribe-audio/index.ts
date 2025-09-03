@@ -16,23 +16,31 @@ const forceEnvCheck = () => {
   console.log('📋 Total env vars:', Object.keys(allEnv).length)
   console.log('🔑 All env var names:', Object.keys(allEnv))
   
-  // Check all variations of OpenAI key
+  // Check all variations of OpenAI key - try direct access
   const variations = ['OPENAI_API_KEY', 'OPENAI_API_KEY_SECRET', 'OPENAI_KEY']
+  let foundKey = null
+  
   variations.forEach(keyName => {
-    const val = Deno.env.get(keyName)
+    const val = allEnv[keyName] || Deno.env.get(keyName)
     console.log(`🔍 ${keyName}:`, {
       exists: !!val,
       length: val?.length || 0,
       type: typeof val,
-      firstChars: val ? val.substring(0, 8) + '...' : 'null'
+      firstChars: val ? val.substring(0, 15) : 'null',
+      fromObject: !!allEnv[keyName],
+      fromDeno: !!Deno.env.get(keyName)
     })
+    if (val && !foundKey) {
+      foundKey = val
+    }
   })
   
-  const key = Deno.env.get('OPENAI_API_KEY')
-  console.log('🔄 Forced env check - API key status:', {
+  const key = foundKey || allEnv['OPENAI_API_KEY'] || Deno.env.get('OPENAI_API_KEY')
+  console.log('🔄 Final API key check:', {
     exists: !!key,
     length: key?.length || 0,
-    hasPrefix: key?.startsWith('sk-') || false
+    hasPrefix: key?.startsWith('sk-') || false,
+    source: foundKey ? 'found_variation' : 'default'
   })
   return key
 }
@@ -253,14 +261,32 @@ serve(async (req) => {
       )
     }
 
-    // If API key is provided in request, use it; otherwise fall back to env
-    const effectiveApiKey = openaiApiKey || Deno.env.get('OPENAI_API_KEY')
+    // If API key is provided in request, use it; otherwise try multiple sources
+    const allEnv = Deno.env.toObject()
+    const effectiveApiKey = openaiApiKey || 
+                           allEnv['OPENAI_API_KEY'] || 
+                           Deno.env.get('OPENAI_API_KEY') ||
+                           allEnv['OPENAI_KEY'] ||
+                           Deno.env.get('OPENAI_KEY')
     
-    if (!effectiveApiKey) {
+    console.log('🔑 API key resolution:', {
+      fromRequest: !!openaiApiKey,
+      fromEnvObject: !!allEnv['OPENAI_API_KEY'],
+      fromDenoEnv: !!Deno.env.get('OPENAI_API_KEY'),
+      finalExists: !!effectiveApiKey,
+      finalLength: effectiveApiKey?.length || 0
+    })
+    
+    if (!effectiveApiKey || effectiveApiKey.trim() === '') {
+      console.error('❌ No valid OpenAI API key found after checking all sources')
       return new Response(
         JSON.stringify({ 
           error: 'OpenAI API key required. Please provide it in the request or configure as environment variable.',
-          needsApiKey: true 
+          needsApiKey: true,
+          debug: {
+            checkedSources: ['request', 'OPENAI_API_KEY', 'OPENAI_KEY'],
+            envVars: Object.keys(allEnv).filter(k => k.includes('OPENAI'))
+          }
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
