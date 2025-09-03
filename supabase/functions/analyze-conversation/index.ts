@@ -6,26 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Rate limiting: Max 10 requests per user per minute
-const rateLimiter = new Map<string, { count: number; resetTime: number }>();
-
-const checkRateLimit = (userId: string): boolean => {
-  const now = Date.now();
-  const userLimit = rateLimiter.get(userId);
-  
-  if (!userLimit || now > userLimit.resetTime) {
-    rateLimiter.set(userId, { count: 1, resetTime: now + 60000 }); // 1 minute
-    return true;
-  }
-  
-  if (userLimit.count >= 10) {
-    return false;
-  }
-  
-  userLimit.count++;
-  return true;
-}
-
 const SYSTEM_PROMPT = `You are an expert sales coach and conversation analyst. The user will provide a clean transcript with timestamps and speaker labels. Answer user queries about the transcript with actionable, concise, and practical sales feedback. Always include, when relevant:
 
 - A one-sentence summary.
@@ -53,50 +33,11 @@ serve(async (req) => {
   }
 
   try {
-    // Get authorization header for rate limiting
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization header required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Extract user ID for rate limiting
-    const jwt = authHeader.replace('Bearer ', '')
-    let userId: string
-    
-    try {
-      const payload = JSON.parse(atob(jwt.split('.')[1]))
-      userId = payload.sub
-    } catch {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Check rate limit
-    if (!checkRateLimit(userId)) {
-      return new Response(
-        JSON.stringify({ error: 'Rate limit exceeded. Please wait before making more requests.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     const { recordingId, question } = await req.json()
     
     if (!recordingId || !question) {
       return new Response(
         JSON.stringify({ error: 'Recording ID and question are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Input validation
-    if (typeof question !== 'string' || question.length > 1000) {
-      return new Response(
-        JSON.stringify({ error: 'Question must be a string with max 1000 characters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

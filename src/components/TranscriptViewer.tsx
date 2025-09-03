@@ -9,7 +9,6 @@ import { ArrowLeft, Send, Copy, MessageSquare, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import AudioPlayer from '@/components/AudioPlayer';
-import SimpleAudioPlayer from '@/components/SimpleAudioPlayer';
 
 interface Segment {
   start_time: number;
@@ -65,7 +64,6 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
   }, [recordingId]);
 
   const fetchRecordingData = async () => {
-    console.log('TranscriptViewer: Fetching recording data for ID:', recordingId);
     try {
       // Fetch recording and transcript data
       const { data, error } = await supabase
@@ -86,15 +84,13 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
         .single();
 
       if (error) {
-        console.error('TranscriptViewer: Error fetching recording:', error);
+        console.error('Error fetching recording:', error);
         return;
       }
 
-      console.log('TranscriptViewer: Fetched recording data:', data);
       setRecording(data);
       if (data.transcripts && data.transcripts[0]) {
         const transcriptData = data.transcripts[0];
-        console.log('TranscriptViewer: Setting transcript data:', transcriptData);
         setTranscript({
           ...transcriptData,
           segments: Array.isArray(transcriptData.segments) ? (transcriptData.segments as unknown as Segment[]) : []
@@ -228,26 +224,13 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
           </CardHeader>
           <CardContent>
             {/* Audio Player */}
-            <div className="mb-4 space-y-4">
-              {/* Original AudioPlayer */}
-              <div>
-                <p className="text-xs text-muted-foreground mb-2">Custom Audio Player:</p>
-                <AudioPlayer
-                  audioUrl={recording.audio_url}
-                  title={recording.title}
-                  duration={recording.duration_seconds}
-                  className="bg-muted/50"
-                />
-              </div>
-              
-              {/* Fallback SimpleAudioPlayer */}
-              <div>
-                <SimpleAudioPlayer
-                  audioUrl={recording.audio_url}
-                  title={recording.title}
-                  className="bg-yellow-50 border-yellow-200"
-                />
-              </div>
+            <div className="mb-4">
+              <AudioPlayer
+                audioUrl={recording.audio_url}
+                title={recording.title}
+                duration={recording.duration_seconds}
+                className="bg-muted/50"
+              />
             </div>
 
             {/* Transcript Content */}

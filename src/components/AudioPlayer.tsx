@@ -29,8 +29,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   compact = false,
   className = ""
 }) => {
-  console.log('AudioPlayer: Component rendered with props:', { audioUrl, title, duration, compact });
-  
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(duration || 0);
@@ -42,34 +40,20 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !audioUrl) {
-      console.log('AudioPlayer: Missing audio element or URL:', { hasAudio: !!audio, audioUrl });
-      return;
-    }
+    if (!audio) return;
 
-    console.log('AudioPlayer: Setting up audio element with URL:', audioUrl);
-
-    // Very simple configuration - no preload to avoid CORS issues
-    audio.preload = 'none';
+    // Mobile-specific optimizations
+    audio.preload = isMobile ? 'metadata' : 'auto';
+    audio.crossOrigin = 'anonymous';
     
-    // Mobile-specific attributes for better compatibility
+    // Additional mobile optimizations
     if (isMobile) {
-      audio.setAttribute('playsinline', 'true');
-      audio.setAttribute('webkit-playsinline', 'true');
+      audio.load(); // Preload metadata on mobile
     }
     
-    const handleLoadStart = () => {
-      console.log('AudioPlayer: Load started');
-      setIsLoading(true);
-    };
-    
-    const handleCanPlay = () => {
-      console.log('AudioPlayer: Can play');
-      setIsLoading(false);
-    };
-    
+    const handleLoadStart = () => setIsLoading(true);
+    const handleCanPlay = () => setIsLoading(false);
     const handleLoadedMetadata = () => {
-      console.log('AudioPlayer: Metadata loaded, duration:', audio.duration);
       if (audio.duration && !isNaN(audio.duration)) {
         setAudioDuration(audio.duration);
       }
@@ -81,40 +65,28 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
     
     const handlePlay = () => {
-      console.log('AudioPlayer: Playing');
       setIsPlaying(true);
       onPlay?.();
     };
     
     const handlePause = () => {
-      console.log('AudioPlayer: Paused');
       setIsPlaying(false);
       onPause?.();
     };
     
     const handleEnded = () => {
-      console.log('AudioPlayer: Ended');
       setIsPlaying(false);
       setCurrentTime(0);
       onEnded?.();
     };
     
     const handleError = (e: any) => {
-      console.error('AudioPlayer: Error event:', e);
-      console.error('AudioPlayer: Error details:', {
-        error: e,
-        audioUrl,
-        audioSrc: audio?.src,
-        readyState: audio?.readyState,
-        networkState: audio?.networkState,
-        errorCode: audio?.error?.code,
-        errorMessage: audio?.error?.message
-      });
+      console.error('Audio error:', e);
       setIsLoading(false);
       setIsPlaying(false);
       toast({
         title: 'Audio Error',
-        description: `Connection failed: ${audioUrl}`,
+        description: 'Failed to load audio. Please try again.',
         variant: 'destructive'
       });
     };
@@ -159,68 +131,51 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const handlePlayPause = async () => {
     const audio = audioRef.current;
-    if (!audio || !audioUrl) {
-      console.error('AudioPlayer: Missing audio element or URL');
-      return;
-    }
-
-    console.log('AudioPlayer: Attempting to play/pause:', { isPlaying, audioUrl, readyState: audio.readyState });
+    if (!audio) return;
 
     try {
       if (isPlaying) {
         audio.pause();
       } else {
         setIsLoading(true);
-        
-        // Reset and reload if needed
-        if (audio.readyState === 0) {
-          console.log('AudioPlayer: Reloading audio...');
-          audio.load();
-          
-          // Wait for canplay event
+        // Load audio first if needed
+        if (audio.readyState < 2) {
           await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Load timeout')), 10000);
-            
-            const onCanPlay = () => {
-              clearTimeout(timeout);
-              audio.removeEventListener('canplay', onCanPlay);
-              audio.removeEventListener('error', onError);
+            audio.oncanplay = () => {
+              setIsLoading(false);
               resolve();
             };
-            
-            const onError = (e: any) => {
-              clearTimeout(timeout);
-              audio.removeEventListener('canplay', onCanPlay);
-              audio.removeEventListener('error', onError);
-              reject(e);
-            };
-            
-            audio.addEventListener('canplay', onCanPlay);
-            audio.addEventListener('error', onError);
+            audio.onerror = reject;
+            audio.load();
           });
         }
         
-        await audio.play();
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+        }
         setIsLoading(false);
       }
     } catch (error: any) {
-      console.error('AudioPlayer: Play/pause error:', error);
+      console.error('Play/pause error:', error);
       setIsLoading(false);
       
-      let description = 'Unable to play audio. Please check your connection and try again.';
+      // Handle mobile interaction requirements
       if (error.name === 'NotAllowedError') {
-        description = isMobile 
-          ? 'Tap the play button to start audio playback on mobile devices.' 
-          : 'Click the play button to start audio playback.';
-      } else if (error.name === 'NotSupportedError') {
-        description = 'This audio format is not supported by your browser.';
+        toast({
+          title: 'Tap to Play',
+          description: isMobile 
+            ? 'Tap the play button to start audio playback on mobile devices.' 
+            : 'Click the play button to start audio playback.',
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'Playback Error',
+          description: 'Unable to play audio. Please check your connection and try again.',
+          variant: 'destructive'
+        });
       }
-      
-      toast({
-        title: 'Playback Error',
-        description,
-        variant: 'destructive'
-      });
     }
   };
 
@@ -246,44 +201,34 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   if (compact) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
-        <audio 
-          ref={audioRef} 
-          src={audioUrl}
-          playsInline
-          preload="none"
-          controls={false}
-          onLoadStart={() => console.log('Audio element: load started for:', audioUrl)}
-          onCanPlay={() => console.log('Audio element: can play for:', audioUrl)}
-          onError={(e) => console.error('Audio element: error for:', audioUrl, e)}
-        />
+        <audio ref={audioRef} src={audioUrl} />
         <Button
           variant="ghost"
-          size={isMobile ? "default" : "sm"}
+          size="sm"
           onClick={handlePlayPause}
           disabled={isLoading}
-          className={isMobile ? "h-9 w-9 p-0" : "h-8 w-8 p-0"}
+          className="h-8 w-8 p-0"
         >
           {isLoading ? (
-            <Loader2 className={`${isMobile ? "w-5 h-5" : "w-4 h-4"} animate-spin`} />
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : isPlaying ? (
-            <Pause className={isMobile ? "w-5 h-5" : "w-4 h-4"} />
+            <Pause className="w-4 h-4" />
           ) : (
-            <Play className={isMobile ? "w-5 h-5" : "w-4 h-4"} />
+            <Play className="w-4 h-4" />
           )}
         </Button>
         
-        <div className="flex-1 min-w-0">
-          <Slider
-            value={[progress]}
-            onValueChange={handleSeek}
-            max={100}
-            step={0.1}
-            className={`cursor-pointer ${isMobile ? 'h-6' : ''}`}
-            disabled={isLoading || audioDuration === 0}
-          />
-        </div>
+          <div className="flex-1 min-w-0">
+            <Slider
+              value={[progress]}
+              onValueChange={handleSeek}
+              max={100}
+              step={0.1}
+              className="cursor-pointer"
+            />
+          </div>
         
-        <div className={`${isMobile ? 'text-sm' : 'text-xs'} text-muted-foreground font-mono whitespace-nowrap`}>
+        <div className="text-xs text-muted-foreground font-mono">
           {formatTime(currentTime)} / {formatTime(audioDuration)}
         </div>
       </div>
@@ -292,17 +237,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   return (
     <Card className={className}>
-      <CardContent className={isMobile ? "p-3" : "p-4"}>
-        <audio 
-          ref={audioRef} 
-          src={audioUrl}
-          playsInline
-          preload="none"
-          controls={false}
-          onLoadStart={() => console.log('Audio element: load started for:', audioUrl)}
-          onCanPlay={() => console.log('Audio element: can play for:', audioUrl)}
-          onError={(e) => console.error('Audio element: error for:', audioUrl, e)}
-        />
+      <CardContent className="p-4">
+        <audio ref={audioRef} src={audioUrl} />
         
         {title && (
           <div className="mb-4">
@@ -311,16 +247,16 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         )}
         
         {/* Progress Bar */}
-        <div className={isMobile ? "mb-3" : "mb-4"}>
+        <div className="mb-4">
           <Slider
             value={[progress]}
             onValueChange={handleSeek}
             max={100}
             step={0.1}
-            className={`cursor-pointer ${isMobile ? 'h-6' : ''}`}
+            className="cursor-pointer"
             disabled={isLoading || audioDuration === 0}
           />
-          <div className={`flex justify-between ${isMobile ? 'text-sm' : 'text-xs'} text-muted-foreground mt-1 font-mono`}>
+          <div className="flex justify-between text-xs text-muted-foreground mt-1 font-mono">
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(audioDuration)}</span>
           </div>
@@ -331,17 +267,16 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
-              size={isMobile ? "default" : "sm"}
+              size="sm"
               onClick={handlePlayPause}
               disabled={isLoading}
-              className={isMobile ? "h-10 w-10" : ""}
             >
               {isLoading ? (
-                <Loader2 className={`${isMobile ? "w-6 h-6" : "w-5 h-5"} animate-spin`} />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : isPlaying ? (
-                <Pause className={isMobile ? "w-6 h-6" : "w-5 h-5"} />
+                <Pause className="w-5 h-5" />
               ) : (
-                <Play className={isMobile ? "w-6 h-6" : "w-5 h-5"} />
+                <Play className="w-5 h-5" />
               )}
             </Button>
           </div>
@@ -357,13 +292,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 step={1}
                 className="max-w-[80px]"
               />
-            </div>
-          )}
-          
-          {/* Mobile-specific: Show current time on the right */}
-          {isMobile && (
-            <div className="text-sm text-muted-foreground font-mono">
-              {formatTime(currentTime)}
             </div>
           )}
         </div>

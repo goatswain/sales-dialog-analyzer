@@ -236,9 +236,7 @@ serve(async (req) => {
       )
     }
 
-    const requestBody = await req.json()
-    const { recordingId } = requestBody
-    const openaiApiKey = requestBody.openaiApiKey || null
+    const { recordingId, openaiApiKey } = await req.json()
     
     if (!recordingId) {
       return new Response(
@@ -247,8 +245,8 @@ serve(async (req) => {
       )
     }
 
-    // Use environment variable for API key (openaiApiKey from request is optional)
-    const effectiveApiKey = Deno.env.get('OPENAI_API_KEY')
+    // If API key is provided in request, use it; otherwise fall back to env
+    const effectiveApiKey = openaiApiKey || Deno.env.get('OPENAI_API_KEY')
     
     if (!effectiveApiKey) {
       return new Response(
