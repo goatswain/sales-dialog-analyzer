@@ -114,30 +114,49 @@ const UploadButton: React.FC<UploadButtonProps> = ({ onUploadComplete, session: 
 
       console.log('🎤 Calling transcription with body:', requestBody)
       
-      const { data: result, error } = await supabase.functions.invoke('transcribe-audio', {
-        body: requestBody,
+      // Use direct fetch to get better error handling
+      const response = await fetch(`https://cuabhynevjfnswaciunm.supabase.co/functions/v1/transcribe-audio`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1YWJoeW5ldmpmbnN3YWNpdW5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNTYwMjYsImV4cCI6MjA3MTkzMjAyNn0.waKYoAMsVSeLZ7Xtlt5O2XWm5qtLHvp8FDjqSiXysRc',
+        },
+        body: JSON.stringify(requestBody),
       });
 
-      console.log('🎤 Transcription response:', { result, error })
+      const result = await response.json();
+      console.log('🎤 Transcription response:', { status: response.status, result })
 
-      if (error) {
-        console.log('🎤 Transcription error details:', error)
+      if (!response.ok) {
+        console.log('🎤 Transcription failed with status:', response.status)
+        console.log('🎤 Error result:', result)
         
-        // Check if it's an API key error - be more flexible with the check
-        const errorMessage = error.message || error.error || JSON.stringify(error)
-        if (errorMessage.includes('OpenAI API key') || errorMessage.includes('needsApiKey')) {
-          console.log('🎤 Detected API key error, prompting user...')
-          // Prompt user for API key
-          const userApiKey = prompt('The OpenAI API key is not configured. Please enter your OpenAI API key to enable transcription:')
-          if (userApiKey && userApiKey.trim()) {
-            console.log('🎤 User provided API key, retrying...')
-            // Retry with user-provided API key
-            return startTranscription(recordingId, userApiKey.trim())
-          } else {
-            throw new Error('OpenAI API key required for transcription')
-          }
+        // Check if it's an API key error using the actual response
+        if (result.needsApiKey || (result.error && result.error.includes('OpenAI API key'))) {
+          console.log('🎤 Detected API key error, showing prompt...')
+          
+          // Force the prompt to show immediately
+          setTimeout(() => {
+            const userApiKey = prompt('❌ OpenAI API key is missing!\n\nPlease enter your OpenAI API key to enable transcription:')
+            if (userApiKey && userApiKey.trim()) {
+              console.log('🎤 User provided API key, retrying...')
+              // Retry with user-provided API key
+              startTranscription(recordingId, userApiKey.trim()).catch(console.error)
+            } else {
+              console.log('🎤 User cancelled or provided empty key')
+              toast({
+                title: "API Key Required",
+                description: "OpenAI API key is required for transcription",
+                variant: "destructive",
+              });
+            }
+          }, 100)
+          
+          return // Don't throw error, we're handling it with the prompt
         }
-        throw new Error(errorMessage);
+        
+        throw new Error(result.error || `Transcription failed with status ${response.status}`);
       }
       
       if (result.success) {
