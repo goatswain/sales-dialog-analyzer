@@ -12,13 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    // Create Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Get user from JWT (automatically validated by edge function)
+    // Get the JWT token - it's already validated by the edge function
     const authHeader = req.headers.get('authorization')
     if (!authHeader) {
       return new Response(
@@ -27,18 +21,24 @@ serve(async (req) => {
       )
     }
 
-    // Parse JWT to get user ID
-    const token = authHeader.replace('Bearer ', '')
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    const userId = payload.sub
+    // Create Supabase client with the user's JWT
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { authorization: authHeader } } }
+    )
 
-    if (!userId) {
+    // Get user (JWT is already validated by edge function)
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
+        JSON.stringify({ error: 'Invalid user' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    // Process file upload
     const formData = await req.formData()
     const audioFile = formData.get('audio') as File
     
@@ -49,11 +49,11 @@ serve(async (req) => {
       )
     }
 
-    // Generate unique filename
+    // Generate filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const filename = `audio-${timestamp}-${audioFile.name}`
     
-    // Upload to Supabase Storage
+    // Upload to storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('audio-recordings')
       .upload(filename, audioFile, {
@@ -62,9 +62,8 @@ serve(async (req) => {
       })
 
     if (uploadError) {
-      console.error('Upload error:', uploadError)
       return new Response(
-        JSON.stringify({ error: 'Failed to upload audio file' }),
+        JSON.stringify({ error: 'Upload failed: ' + uploadError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -74,24 +73,23 @@ serve(async (req) => {
       .from('audio-recordings')
       .getPublicUrl(filename)
 
-    // Create recording entry
+    // Create recording record
     const { data: recording, error: dbError } = await supabase
       .from('recordings')
       .insert({
-        title: audioFile.name.replace(/\.[^/.]+$/, ''), // Remove extension
+        title: audioFile.name.replace(/\.[^/.]+$/, ''),
         audio_url: publicUrl,
         audio_filename: filename,
         file_size_bytes: audioFile.size,
         status: 'uploaded',
-        user_id: userId
+        user_id: user.id
       })
       .select()
       .single()
 
     if (dbError) {
-      console.error('Database error:', dbError)
       return new Response(
-        JSON.stringify({ error: 'Failed to save recording data' }),
+        JSON.stringify({ error: 'Database error: ' + dbError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -106,9 +104,8 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Server error: ' + error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
