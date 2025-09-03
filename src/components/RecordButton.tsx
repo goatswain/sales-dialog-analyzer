@@ -144,21 +144,32 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onUploadComplete, session: 
         requestBody.openaiApiKey = apiKey
       }
 
+      console.log('🎤 Calling transcription with body:', requestBody)
+      
       const { data: result, error } = await supabase.functions.invoke('transcribe-audio', {
         body: requestBody,
       });
 
+      console.log('🎤 Transcription response:', { result, error })
+
       if (error) {
-        // Check if it's an API key error
-        if (error.message?.includes('OpenAI API key required')) {
+        console.log('🎤 Transcription error details:', error)
+        
+        // Check if it's an API key error - be more flexible with the check
+        const errorMessage = error.message || error.error || JSON.stringify(error)
+        if (errorMessage.includes('OpenAI API key') || errorMessage.includes('needsApiKey')) {
+          console.log('🎤 Detected API key error, prompting user...')
           // Prompt user for API key
-          const userApiKey = prompt('Please enter your OpenAI API key to enable transcription:')
-          if (userApiKey) {
+          const userApiKey = prompt('The OpenAI API key is not configured. Please enter your OpenAI API key to enable transcription:')
+          if (userApiKey && userApiKey.trim()) {
+            console.log('🎤 User provided API key, retrying...')
             // Retry with user-provided API key
             return startTranscription(recordingId, userApiKey.trim())
+          } else {
+            throw new Error('OpenAI API key required for transcription')
           }
         }
-        throw new Error(error.message || 'Transcription failed');
+        throw new Error(errorMessage);
       }
       
       if (result.success) {
