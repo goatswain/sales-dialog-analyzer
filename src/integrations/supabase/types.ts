@@ -125,6 +125,30 @@ export type Database = {
           },
         ]
       }
+      group_message_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       group_messages: {
         Row: {
           audio_url: string | null
@@ -136,7 +160,8 @@ export type Database = {
           message_type: string
           parent_message_id: string | null
           recording_id: string | null
-          user_id: string
+          system_message: boolean | null
+          user_id: string | null
         }
         Insert: {
           audio_url?: string | null
@@ -148,7 +173,8 @@ export type Database = {
           message_type?: string
           parent_message_id?: string | null
           recording_id?: string | null
-          user_id: string
+          system_message?: boolean | null
+          user_id?: string | null
         }
         Update: {
           audio_url?: string | null
@@ -160,7 +186,8 @@ export type Database = {
           message_type?: string
           parent_message_id?: string | null
           recording_id?: string | null
-          user_id?: string
+          system_message?: boolean | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -192,6 +219,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      group_notification_preferences: {
+        Row: {
+          created_at: string | null
+          group_id: string
+          id: string
+          muted_until: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          group_id: string
+          id?: string
+          muted_until?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          group_id?: string
+          id?: string
+          muted_until?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       groups: {
         Row: {
