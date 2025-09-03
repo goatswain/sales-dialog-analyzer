@@ -42,6 +42,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const audio = audioRef.current;
     if (!audio) return;
 
+    console.log('AudioPlayer: Setting up audio element with URL:', audioUrl);
+
     // Mobile-specific optimizations
     audio.preload = isMobile ? 'metadata' : 'auto';
     audio.crossOrigin = 'anonymous';
@@ -84,6 +86,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     
     const handleError = (e: any) => {
       console.error('Audio error:', e);
+      console.error('Audio URL:', audioUrl);
+      console.error('Audio element src:', audio?.src);
+      console.error('Audio element readyState:', audio?.readyState);
+      console.error('Audio element networkState:', audio?.networkState);
       setIsLoading(false);
       setIsPlaying(false);
       toast({
