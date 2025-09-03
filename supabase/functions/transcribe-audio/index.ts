@@ -197,7 +197,8 @@ serve(async (req) => {
   }
 
   try {
-    // Since verify_jwt = true, we can get user from request context
+    // Since verify_jwt = true, JWT is already validated by Supabase
+    // We can use the auth header directly with the anon key client
     const authHeader = req.headers.get('authorization')
     if (!authHeader) {
       return new Response(
@@ -206,10 +207,10 @@ serve(async (req) => {
       )
     }
 
-    // Create client for API calls (service role for background tasks)
+    // Create client with anon key for user-scoped operations
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '', // Use anon key for user requests
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
           headers: { authorization: authHeader },
@@ -217,13 +218,13 @@ serve(async (req) => {
       }
     )
 
-    // Get the authenticated user (verify_jwt = true means user is already authenticated)
+    // Get the authenticated user (JWT is already validated by verify_jwt = true)
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
     
     if (userError || !user) {
       console.error('Failed to get authenticated user:', userError)
       return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
+        JSON.stringify({ error: 'User not found' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
