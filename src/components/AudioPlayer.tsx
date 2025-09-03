@@ -29,6 +29,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   compact = false,
   className = ""
 }) => {
+  console.log('AudioPlayer: Component rendered with props:', { audioUrl, title, duration, compact });
+  
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(duration || 0);

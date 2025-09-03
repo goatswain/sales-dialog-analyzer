@@ -64,6 +64,7 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
   }, [recordingId]);
 
   const fetchRecordingData = async () => {
+    console.log('TranscriptViewer: Fetching recording data for ID:', recordingId);
     try {
       // Fetch recording and transcript data
       const { data, error } = await supabase
@@ -84,13 +85,15 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
         .single();
 
       if (error) {
-        console.error('Error fetching recording:', error);
+        console.error('TranscriptViewer: Error fetching recording:', error);
         return;
       }
 
+      console.log('TranscriptViewer: Fetched recording data:', data);
       setRecording(data);
       if (data.transcripts && data.transcripts[0]) {
         const transcriptData = data.transcripts[0];
+        console.log('TranscriptViewer: Setting transcript data:', transcriptData);
         setTranscript({
           ...transcriptData,
           segments: Array.isArray(transcriptData.segments) ? (transcriptData.segments as unknown as Segment[]) : []

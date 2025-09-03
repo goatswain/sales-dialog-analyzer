@@ -28,6 +28,7 @@ const RecentCalls: React.FC<RecentCallsProps> = ({ onSelectRecording, refreshTri
   const navigate = useNavigate();
 
   const fetchRecentRecordings = async () => {
+    console.log('RecentCalls: Fetching recent recordings...');
     try {
       const { data, error } = await supabase
         .from('recordings')
@@ -43,16 +44,17 @@ const RecentCalls: React.FC<RecentCallsProps> = ({ onSelectRecording, refreshTri
         .limit(3);
 
       if (error) {
-        console.error('Error fetching recordings:', error);
+        console.error('RecentCalls: Error fetching recordings:', error);
         return;
       }
 
+      console.log('RecentCalls: Fetched recordings:', data);
       setRecordings((data || []).map(recording => ({
         ...recording,
         status: recording.status as 'uploaded' | 'transcribing' | 'completed' | 'error'
       })));
     } catch (error) {
-      console.error('Error:', error);
+      console.error('RecentCalls: Error:', error);
     } finally {
       setLoading(false);
     }
@@ -167,7 +169,14 @@ const RecentCalls: React.FC<RecentCallsProps> = ({ onSelectRecording, refreshTri
           <Card 
             key={recording.id} 
             className="cursor-pointer hover:shadow-md transition-all duration-200 border-0 bg-card"
-            onClick={() => recording.status === 'completed' && onSelectRecording(recording.id)}
+            onClick={() => {
+              console.log('RecentCalls: Clicking on recording:', recording.id, recording.title, recording.status);
+              if (recording.status === 'completed') {
+                onSelectRecording(recording.id);
+              } else {
+                console.log('RecentCalls: Recording not completed, status:', recording.status);
+              }
+            }}
           >
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-3">
