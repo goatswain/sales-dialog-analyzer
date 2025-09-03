@@ -38,25 +38,25 @@ serve(async (req) => {
       }
     )
 
-    // Since verify_jwt = false, we can extract user info from the JWT directly
-    const jwt = authHeader.replace('Bearer ', '')
-    let userId: string
+    // Use proper Supabase auth verification (verify_jwt = true handles JWT validation)
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''))
     
-    try {
-      // Decode JWT to get user ID (since verify_jwt is false, we trust it's already verified)
-      const payload = JSON.parse(atob(jwt.split('.')[1]))
-      userId = payload.sub
-      
-      if (!userId) {
-        throw new Error('No user ID in token')
-      }
-    } catch (decodeError) {
-      console.error('JWT decode error:', decodeError)
+    if (authError || !user) {
+      console.error('Authentication error:', authError)
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
+        JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+    
+    const userId = user.id
+    
+    // Log security event for file upload
+    await supabaseClient.rpc('log_security_event', {
+      event_type: 'file_upload_attempt',
+      user_id: userId,
+      details: { file_size: null, endpoint: 'upload-audio' }
+    })
 
     const formData = await req.formData()
     const audioFile = formData.get('audio') as File
@@ -68,17 +68,27 @@ serve(async (req) => {
       )
     }
 
-    // Validate file size
+    // Validate file size and log security event
     if (audioFile.size > MAX_FILE_SIZE) {
+      await supabaseClient.rpc('log_security_event', {
+        event_type: 'file_upload_rejected_size',
+        user_id: userId,
+        details: { file_size: audioFile.size, max_size: MAX_FILE_SIZE }
+      })
       return new Response(
         JSON.stringify({ error: 'File size exceeds maximum allowed size (50MB)' }),
         { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Validate file type
+    // Validate file type and log security event
     const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/flac', 'audio/ogg', 'audio/aac'];
     if (!allowedTypes.includes(audioFile.type)) {
+      await supabaseClient.rpc('log_security_event', {
+        event_type: 'file_upload_rejected_type',
+        user_id: userId,
+        details: { file_type: audioFile.type, allowed_types: allowedTypes }
+      })
       return new Response(
         JSON.stringify({ error: 'Invalid file type. Only audio files are allowed.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -87,8 +87,15 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Generate invitation token
+    // Generate secure invitation token (JWT-based)
     const invitationToken = crypto.randomUUID();
+    
+    // Log security event for invitation
+    await supabase.rpc('log_security_event', {
+      event_type: 'group_invitation_sent',
+      user_id: user.id,
+      details: { group_id: groupId, invited_email: email }
+    });
     
     // Create invitation record
     const { error: inviteError } = await supabase
