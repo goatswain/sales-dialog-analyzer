@@ -28,33 +28,36 @@ serve(async (req) => {
       )
     }
 
-    // Create Supabase client with anon key and user JWT
-    const supabaseClient = createClient(
+    // Create Supabase client with service role key for admin operations
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { authorization: authHeader },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get current user - this validates the JWT automatically
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-    
-    if (authError || !user) {
-      console.error('Authentication failed:', authError?.message || 'No user found')
+    // Validate JWT token by creating a client with it and checking user
+    const token = authHeader.replace('Bearer ', '')
+    const { data: userData, error: userError } = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/auth/v1/user`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    ).then(res => res.json()).catch(() => ({ error: { message: 'Invalid token' } }))
+
+    if (userError || !userData || !userData.id) {
+      console.error('Authentication failed:', userError?.message || 'No user data')
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
-    console.log('Authenticated user:', user.id)
-    const userId = user.id
+    console.log('Authenticated user:', userData.id)
+    const userId = userData.id
     
     // Log security event for file upload
-    await supabaseClient.rpc('log_security_event', {
+    await supabase.rpc('log_security_event', {
       event_type: 'file_upload_attempt',
       user_id: userId,
       details: { file_size: null, endpoint: 'upload-audio' }
@@ -72,7 +75,7 @@ serve(async (req) => {
 
     // Validate file size and log security event
     if (audioFile.size > MAX_FILE_SIZE) {
-      await supabaseClient.rpc('log_security_event', {
+      await supabase.rpc('log_security_event', {
         event_type: 'file_upload_rejected_size',
         user_id: userId,
         details: { file_size: audioFile.size, max_size: MAX_FILE_SIZE }
@@ -86,7 +89,7 @@ serve(async (req) => {
     // Validate file type and log security event
     const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/flac', 'audio/ogg', 'audio/aac'];
     if (!allowedTypes.includes(audioFile.type)) {
-      await supabaseClient.rpc('log_security_event', {
+      await supabase.rpc('log_security_event', {
         event_type: 'file_upload_rejected_type',
         user_id: userId,
         details: { file_type: audioFile.type, allowed_types: allowedTypes }
@@ -102,7 +105,7 @@ serve(async (req) => {
     const filename = `audio-${timestamp}-${audioFile.name}`
     
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabaseClient.storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('audio-recordings')
       .upload(filename, audioFile, {
         cacheControl: '3600',
@@ -118,12 +121,12 @@ serve(async (req) => {
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabaseClient.storage
+    const { data: { publicUrl } } = supabase.storage
       .from('audio-recordings')
       .getPublicUrl(filename)
 
     // Create recording entry
-    const { data: recording, error: dbError } = await supabaseClient
+    const { data: recording, error: dbError } = await supabase
       .from('recordings')
       .insert({
         title: audioFile.name.replace(/\.[^/.]+$/, ''), // Remove extension
