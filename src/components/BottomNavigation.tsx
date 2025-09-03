@@ -11,7 +11,7 @@ const BottomNavigation = () => {
     { path: '/', icon: Home, label: 'Home' },
     { path: '/calls', icon: Phone, label: 'Calls' },
     { path: '/groups', icon: Users, label: 'Groups' },
-    { path: '/swain-coaching', icon: TrendingUp, label: 'Coaching' },
+    { path: '/swain-coaching', icon: TrendingUp, label: 'Swain AI' },
     { path: '/profile', icon: User, label: 'Profile' },
   ];
 

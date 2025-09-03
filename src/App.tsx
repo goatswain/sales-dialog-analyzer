@@ -39,6 +39,7 @@ const App = () => (
                   <Route path="/groups/:groupId" element={<GroupChat />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/swain-coaching" element={<SwainCoaching />} />
+                  <Route path="/daily-coaching" element={<SwainCoaching />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/payment-success" element={<PaymentSuccess />} />
                   <Route path="/payment-canceled" element={<PaymentCanceled />} />

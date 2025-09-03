@@ -283,7 +283,7 @@ const SwainCoaching = () => {
               alt="SwainAI Logo" 
               className="w-12 h-12 object-contain"
             />
-            <h1 className="text-xl font-poppins font-bold text-foreground">Swain Coaching</h1>
+            <h1 className="text-xl font-poppins font-bold text-foreground">Swain AI</h1>
           </div>
           
           <div className="flex items-center space-x-3">
