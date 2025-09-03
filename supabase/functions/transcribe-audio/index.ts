@@ -95,20 +95,13 @@ async function performTranscriptionWithKey(recordingId: string, openaiApiKey: st
     console.log('  - First 15 chars:', validApiKey.substring(0, 15))
     console.log('  - Contains sk-proj:', validApiKey.includes('sk-proj'))
     
-    // Updated validation for both legacy (sk-...) and project (sk-proj-...) keys
-    if (!validApiKey.startsWith('sk-')) {
-      console.error('❌ Invalid OpenAI API key format - must start with sk-')
-      console.error('❌ Actual start of key:', validApiKey.substring(0, 10))
+    // Simplified validation - let OpenAI validate the key format
+    if (!validApiKey || validApiKey.length < 10) {
+      console.error('❌ API key appears invalid - too short or empty')
       throw new Error('Invalid OpenAI API key format')
     }
     
-    // Legacy keys are ~48 chars, project keys are ~164 chars
-    if (validApiKey.length < 40) {
-      console.error('❌ Invalid OpenAI API key format - too short:', validApiKey.length)
-      throw new Error('Invalid OpenAI API key format')
-    }
-    
-    console.log('✅ API key validation passed!')
+    console.log('✅ API key basic validation passed, proceeding to OpenAI...')
 
     // Download audio file from Supabase Storage
     console.log('📥 Downloading audio file...')
