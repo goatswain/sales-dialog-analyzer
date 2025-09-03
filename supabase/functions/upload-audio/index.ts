@@ -70,7 +70,8 @@ serve(async (req) => {
 
     // Generate filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const filename = `audio-${timestamp}-${audioFile.name}`
+    const originalName = audioFile.name || 'recording.wav'
+    const filename = `audio-${timestamp}-${originalName}`
     
     // Upload to storage
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -96,7 +97,7 @@ serve(async (req) => {
     const { data: recording, error: dbError } = await supabase
       .from('recordings')
       .insert({
-        title: audioFile.name.replace(/\.[^/.]+$/, ''),
+        title: (audioFile.name || 'Recording').replace(/\.[^/.]+$/, ''),
         audio_url: publicUrl,
         audio_filename: filename,
         file_size_bytes: audioFile.size,
