@@ -29,28 +29,35 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <div className="flex flex-col min-h-screen">
-          <AuthGuard>
-            <SubscriptionProvider>
-              <ProfileGuard>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/calls" element={<Calls />} />
-                  <Route path="/groups" element={<Groups />} />
-                  <Route path="/groups/:groupId" element={<GroupChat />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/swain-reports" element={<SwainReports />} />
-                  <Route path="/swain-coaching" element={<SwainReports />} />
-                  <Route path="/daily-coaching" element={<SwainReports />} />
-                  <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/payment-success" element={<PaymentSuccess />} />
-                  <Route path="/payment-canceled" element={<PaymentCanceled />} />
-                  <Route path="/auth" element={<Auth />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </ProfileGuard>
-            </SubscriptionProvider>
-          </AuthGuard>
+          <Routes>
+            {/* Auth route - outside AuthGuard so unauthenticated users can access */}
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Protected routes - wrapped in AuthGuard */}
+            <Route path="/*" element={
+              <AuthGuard>
+                <SubscriptionProvider>
+                  <ProfileGuard>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/calls" element={<Calls />} />
+                      <Route path="/groups" element={<Groups />} />
+                      <Route path="/groups/:groupId" element={<GroupChat />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/swain-reports" element={<SwainReports />} />
+                      <Route path="/swain-coaching" element={<SwainReports />} />
+                      <Route path="/daily-coaching" element={<SwainReports />} />
+                      <Route path="/pricing" element={<Pricing />} />
+                      <Route path="/payment-success" element={<PaymentSuccess />} />
+                      <Route path="/payment-canceled" element={<PaymentCanceled />} />
+                      {/* Catch-all for protected routes */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </ProfileGuard>
+                </SubscriptionProvider>
+              </AuthGuard>
+            } />
+          </Routes>
           <Footer />
         </div>
       </BrowserRouter>
