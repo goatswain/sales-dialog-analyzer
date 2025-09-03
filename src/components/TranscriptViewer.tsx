@@ -108,12 +108,24 @@ const TranscriptViewer: React.FC<TranscriptViewerProps> = ({ recordingId, onBack
   const handleAskQuestion = async () => {
     if (!question.trim()) return;
 
+    // Get API key from localStorage
+    const apiKey = localStorage.getItem('openai-api-key')
+    if (!apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please add your OpenAI API key in Settings to enable AI analysis.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke('analyze-conversation', {
         body: {
           recordingId: recordingId,
           question: question.trim(),
+          apiKey
         },
       });
 

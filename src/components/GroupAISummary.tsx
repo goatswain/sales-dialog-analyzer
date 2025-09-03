@@ -95,9 +95,20 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
       let transcriptData = existingTranscript;
 
       if (!existingTranscript) {
+        // Get API key from localStorage for transcription
+        const apiKey = localStorage.getItem('openai-api-key')
+        if (!apiKey) {
+          toast({
+            title: "API Key Required",
+            description: "Please add your OpenAI API key in Settings to enable transcription.",
+            variant: "destructive",
+          })
+          return
+        }
+
         // Trigger transcription
-        const { error: transcribeError } = await supabase.functions.invoke('transcribe-audio', {
-          body: { recordingId }
+        const { error: transcribeError } = await supabase.functions.invoke('transcribe-audio-v2', {
+          body: { recordingId, apiKey }
         });
 
         if (transcribeError) {
@@ -124,10 +135,22 @@ export const GroupAISummary: React.FC<GroupAISummaryProps> = ({
 
         // Only generate AI analysis if we don't have existing saved analysis
         if (!existingAnalysis) {
+          // Get API key from localStorage
+          const apiKey = localStorage.getItem('openai-api-key')
+          if (!apiKey) {
+            toast({
+              title: "API Key Required",
+              description: "Please add your OpenAI API key in Settings to enable AI analysis.",
+              variant: "destructive",
+            })
+            return
+          }
+
           const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-conversation', {
             body: {
               recordingId,
-              question: 'Please provide a concise summary highlighting key points, objections raised, responses given, and improvement tips for this conversation.'
+              question: 'Please provide a concise summary highlighting key points, objections raised, responses given, and improvement tips for this conversation.',
+              apiKey
             }
           });
 

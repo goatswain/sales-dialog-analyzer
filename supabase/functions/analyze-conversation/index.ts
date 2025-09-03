@@ -33,11 +33,11 @@ serve(async (req) => {
   }
 
   try {
-    const { recordingId, question } = await req.json()
+    const { recordingId, question, apiKey } = await req.json()
     
-    if (!recordingId || !question) {
+    if (!recordingId || !question || !apiKey) {
       return new Response(
-        JSON.stringify({ error: 'Recording ID and question are required' }),
+        JSON.stringify({ error: 'Recording ID, question, and API key are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -82,11 +82,8 @@ serve(async (req) => {
       return `${timestamp} - ${speaker}: ${segment.text}`
     }).join('\n') || transcript.text
 
-    // Get OpenAI API key
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured')
-    }
+    // Use the provided API key
+    const openaiApiKey = apiKey
 
     // Call OpenAI API
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
